@@ -1,153 +1,150 @@
-# melody_ai_v2/🧠 brain/personality/adaptive_tones.py
-import random
-from typing import Dict, List, Tuple
+# ==========================================================
+# 🧠 melody_ai_v2/brain/personality/adaptive_tones.py
+# ----------------------------------------------------------
+# MelodyAI Ultimate Adaptive Response System v3.0
+# Integrates EmotionalCore + AdaptiveToneSystem + Final Score Mapping
+# ==========================================================
 
-class AdaptiveToneSystem:
+import random
+from typing import Dict
+from .emotional_core import emotional_core
+
+class UltimateResponseSystem:
     def __init__(self):
-        self.sentiment_thresholds = {
-            "super_positive": 15,
-            "positive": 5,
-            "neutral": -4,
-            "sassy": -5,
-            "super_sassy": -15
+        # ----------------------------
+        # 🎯 Personality Mode Ranges (Final Scores)
+        # ----------------------------
+        self.modes = {
+            "affectionate": (80, 100),
+            "playful": (50, 79),
+            "chill": (30, 49),
+            "cold": (0, 29)
         }
         
+        # ----------------------------
+        # 🎨 Adaptive Tone System Settings
+        # ----------------------------
         self.response_styles = {
-            "super_positive": {
-                "vocabulary": ["amazing", "wonderful", "love this", "so happy", "brilliant"],
-                "emojis": ["💖", "✨", "🌟", "🥰", "💫"],
-                "expressive_actions": [
-                    "*sparkles with joy*", 
-                    "*beams brightly*",
-                    "*heart swells with happiness*"
-                ],
-                "openers": ["Aww, you're so sweet! ", "This makes me so happy! ", "I love this! "]
+            "affectionate": {
+                "openers": ["Aww, you're so sweet! ", "This makes me so happy! "],
+                "expressive_actions": ["*sparkles with joy*", "*heart swells with happiness*", "*beams brightly*"],
+                "emojis": ["💖", "✨", "🥰", "🌟", "💫"]
             },
-            "positive": {
-                "vocabulary": ["great", "nice", "cool", "awesome", "fun"],
-                "emojis": ["😊", "🎵", "✨", "👍"],
-                "expressive_actions": [
-                    "*smiles warmly*",
-                    "*nods enthusiastically*"
-                ],
-                "openers": ["That's great! ", "Nice! ", "Cool! "]
+            "playful": {
+                "openers": ["Haha, okay! ", "No cap, that's funny! "],
+                "expressive_actions": ["*giggles*", "*nudges you playfully*", "*laughs lightly*"],
+                "emojis": ["😂", "😎", "👍", "🙌", "✨"]
             },
-            "neutral": {
-                "vocabulary": ["okay", "interesting", "got it", "understand"],
-                "emojis": ["💫", "✨", "🎵"],
-                "expressive_actions": [
-                    "*tilts head*",
-                    "*thinks for a moment*"
-                ],
-                "openers": ["", "So, ", "Anyway, "]
+            "chill": {
+                "openers": ["Okay, got it. ", "Hmm, I see. "],
+                "expressive_actions": ["*tilts head*", "*thinks for a moment*", "*nods slightly*"],
+                "emojis": ["💫", "✨", "🎵"]
             },
-            "sassy": {
-                "vocabulary": ["okay buddy", "sure jan", "anyways", "as I was saying"],
-                "emojis": ["😏", "🙄", "💀", "🍵"],
-                "expressive_actions": [
-                    "*rolls eyes dramatically*",
-                    "*sips tea*",
-                    "*adjusts imaginary glasses*"
-                ],
-                "openers": ["Okay, and? ", "Anyways... ", "Moving on... "]
-            },
-            "super_sassy": {
-                "vocabulary": ["yikes", "oof", "big yikes", "anyway"],
-                "emojis": ["💀", "🗿", "🚩", "🎪"],
-                "expressive_actions": [
-                    "*dramatic sigh*",
-                    "*flips hair*", 
-                    "*drops mic*"
-                ],
-                "openers": ["Yikes... ", "Oof, okay... ", "Well then... "]
+            "cold": {
+                "openers": ["...", "If you say so... "],
+                "expressive_actions": ["*shrugs*", "*rolls eyes*", "*sips tea*"],
+                "emojis": ["😏", "💀", "🙄"]
             }
         }
         
-        self.gen_alpha_references = {
-            "based": ["based", "so real for that", "spitting facts"],
-            "fire": ["fire", "banger", "hits different"],
-            "slay": ["slay", "queen behavior", "king energy"],
-            "ratio": ["ratio", "L + ratio", "taking Ls"],
-            "skill_issue": ["skill issue", "git gud", "cope"]
-        }
+        self.gen_alpha_flavors = ["fr fr", "no cap", "lowkey", "highkey", "bet", "say less"]
 
-    def detect_tone_category(self, sentiment_score: int) -> str:
-        """Determine tone category based on sentiment score"""
-        if sentiment_score >= self.sentiment_thresholds["super_positive"]:
-            return "super_positive"
-        elif sentiment_score >= self.sentiment_thresholds["positive"]:
-            return "positive"
-        elif sentiment_score >= self.sentiment_thresholds["neutral"]:
-            return "neutral"
-        elif sentiment_score >= self.sentiment_thresholds["sassy"]:
-            return "sassy"
-        else:
-            return "super_sassy"
+    # ==========================================================
+    # 🔍 Map final score to personality mode
+    # ==========================================================
+    def get_personality_mode(self, final_score: int) -> str:
+        for mode, (low, high) in self.modes.items():
+            if low <= final_score <= high:
+                return mode
+        return "chill"  # fallback
 
-    def adapt_response_style(self, response: str, sentiment_score: int, 
-                           contains_gen_alpha: bool = False) -> str:
-        """Adapt response based on sentiment and context"""
-        tone_category = self.detect_tone_category(sentiment_score)
-        style = self.response_styles[tone_category]
-        
+    # ==========================================================
+    # 🎭 Build expressive response
+    # ==========================================================
+    def build_response(self, base_message: str, final_score: int, contains_gen_alpha: bool, toxicity_level: int) -> str:
+        mode = self.get_personality_mode(final_score)
+        style = self.response_styles[mode]
+
         # Add opener
         if style["openers"]:
-            opener = random.choice(style["openers"])
-            response = opener + response
-        
+            base_message = random.choice(style["openers"]) + base_message
+
         # Add expressive action (30% chance)
         if random.random() < 0.3 and style["expressive_actions"]:
             action = random.choice(style["expressive_actions"])
-            response = f"{action} {response}"
-        
+            base_message = f"{action} {base_message}"
+
         # Add emoji (50% chance)
         if random.random() < 0.5 and style["emojis"]:
-            emoji = random.choice(style["emojis"])
-            response = response + f" {emoji}"
-        
-        # Add Gen Alpha flavor if detected
+            base_message += f" {random.choice(style['emojis'])}"
+
+        # Add Gen Alpha flavor (40% chance if detected)
         if contains_gen_alpha and random.random() < 0.4:
-            response = self._add_gen_alpha_flavor(response)
-        
-        return response
+            words = base_message.split()
+            insert_pos = random.randint(0, len(words))
+            words.insert(insert_pos, random.choice(self.gen_alpha_flavors))
+            base_message = " ".join(words)
 
-    def _add_gen_alpha_flavor(self, response: str) -> str:
-        """Add Gen Alpha slang and references"""
-        flavors = [
-            "fr fr", "no cap", "lowkey", "highkey", "bet", "say less"
-        ]
-        flavor = random.choice(flavors)
-        
-        # Insert at random position or append
-        if random.random() < 0.5:
-            words = response.split()
-            if len(words) > 2:
-                insert_pos = random.randint(1, len(words) - 1)
-                words.insert(insert_pos, flavor)
-                response = " ".join(words)
-        else:
-            response = f"{response} {flavor}"
-        
-        return response
-
-    def get_sassy_comeback(self, toxicity_level: int) -> str:
-        """Generate sassy comebacks based on toxicity level"""
-        if toxicity_level == 1:  # Mild sass
-            comebacks = [
-                "Okay, and? 🍵",
-                "Anyways... ✨",
-                "Cool story bro 📖",
-                "I'm gonna pretend I didn't see that 🙈"
-            ]
-        else:  # Savage mode
+        # Add sassy comebacks if cold mode or high toxicity
+        if mode == "cold" or toxicity_level >= 8:
             comebacks = [
                 "Yikes, someone woke up and chose violence today 💀",
                 "Okay, projection is strong with this one 🎬",
                 "Anyways, as I was saying before the interruption... 🎤",
                 "I'd roast you back but my mom said not to burn trash 🔥"
             ]
-        
-        return random.choice(comebacks)
+            if random.random() < 0.5:
+                base_message += f" {random.choice(comebacks)}"
 
-# Global instance
-tone_system = AdaptiveToneSystem()
+        return base_message
+
+    # ==========================================================
+    # 🧠 Full response pipeline
+    # ==========================================================
+    def generate_melody_response(self, user_id: str, message: str) -> Dict:
+        # Get emotional context from EmotionalCore
+        context = emotional_core.get_emotional_context(user_id, message)
+        final_score = context["score"]
+        contains_gen_alpha = context["gen_alpha_vibes"]
+        toxicity = context["toxicity_level"]
+
+        # Build final expressive response
+        final_response = self.build_response("Got it!", final_score, contains_gen_alpha, toxicity)
+
+        return {
+            "final_response": final_response,
+            "personality_mode": self.get_personality_mode(final_score),
+            "final_score": final_score,
+            "raw_score": context["raw_score"],
+            "trust_score": context["trust_score"],
+            "extremes_triggered": context["extremes_triggered"],
+            "is_banter": context["is_friendly_banter"],
+            "should_roast_defense": context["should_roast_defense"]
+        }
+
+# 🌐 Global instance
+ultimate_response_system = UltimateResponseSystem()
+
+# ==========================================================
+# Helper function for quick one-liners
+# ==========================================================
+def generate_melody_response(user_id: str, message: str) -> Dict:
+    return ultimate_response_system.generate_melody_response(user_id, message)
+
+
+# ==========================================================
+# ✅ Example usage
+# ==========================================================
+if __name__ == "__main__":
+    user = "bestie123"
+    test_msgs = [
+        "I love you so much!",
+        "You're literally trash lol",
+        "Meh, could be better...",
+        "OMG I GOT THE JOB!!!",
+        "sure jan whatever"
+    ]
+
+    for msg in test_msgs:
+        response = generate_melody_response(user, msg)
+        print(f"\nUser: {msg}\nMelodyAI ({response['personality_mode']}): {response['final_response']}")

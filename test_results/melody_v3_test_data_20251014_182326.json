@@ -1,0 +1,14 @@
+{
+  "timestamp": "20251014_182326",
+  "emotional_core": {},
+  "personality_modes": {},
+  "memory_systems": {
+    "permanent_facts": "NOT_AVAILABLE",
+    "semantic_memory": "NOT_AVAILABLE"
+  },
+  "ai_integration": {
+    "status": "SKIPPED",
+    "reason": "API key not available"
+  },
+  "end_to_end": {}
+}

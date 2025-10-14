@@ -1,0 +1,201 @@
+{
+  "timestamp": "20251014_180131",
+  "emotional_core": [
+    {
+      "message": "omg i love you so much bestie! you're the best! 💖",
+      "sentiment": "positive",
+      "raw_score": 10,
+      "final_score": 72,
+      "personality": "playful",
+      "whiplash": false,
+      "gen_alpha": false
+    },
+    {
+      "message": "you're literally my favorite person in the whole world 🥺",
+      "sentiment": "positive",
+      "raw_score": 8,
+      "final_score": 70,
+      "personality": "playful",
+      "whiplash": false,
+      "gen_alpha": true
+    },
+    {
+      "message": "thank you for always being there for me 😊",
+      "sentiment": "positive",
+      "raw_score": 9,
+      "final_score": 72,
+      "personality": "playful",
+      "whiplash": false,
+      "gen_alpha": true
+    },
+    {
+      "message": "bro that's so funny 💀😭",
+      "sentiment": "neutral",
+      "raw_score": -7,
+      "final_score": 36,
+      "personality": "chill",
+      "whiplash": false,
+      "gen_alpha": false
+    },
+    {
+      "message": "no cap you're wild for that fr",
+      "sentiment": "positive",
+      "raw_score": 15,
+      "final_score": 82,
+      "personality": "affectionate",
+      "whiplash": true,
+      "gen_alpha": true
+    },
+    {
+      "message": "LMAO you did NOT just say that",
+      "sentiment": "neutral",
+      "raw_score": 0,
+      "final_score": 53,
+      "personality": "playful",
+      "whiplash": true,
+      "gen_alpha": false
+    },
+    {
+      "message": "yeah whatever i guess",
+      "sentiment": "neutral",
+      "raw_score": -2,
+      "final_score": 45,
+      "personality": "chill",
+      "whiplash": false,
+      "gen_alpha": true
+    },
+    {
+      "message": "meh could be better",
+      "sentiment": "neutral",
+      "raw_score": 0,
+      "final_score": 49,
+      "personality": "chill",
+      "whiplash": false,
+      "gen_alpha": false
+    },
+    {
+      "message": "sure whatever you say",
+      "sentiment": "neutral",
+      "raw_score": -2,
+      "final_score": 45,
+      "personality": "chill",
+      "whiplash": false,
+      "gen_alpha": true
+    },
+    {
+      "message": "whatever i don't care",
+      "sentiment": "neutral",
+      "raw_score": -2,
+      "final_score": 45,
+      "personality": "chill",
+      "whiplash": false,
+      "gen_alpha": true
+    },
+    {
+      "message": "as if i'd believe that",
+      "sentiment": "neutral",
+      "raw_score": 0,
+      "final_score": 49,
+      "personality": "chill",
+      "whiplash": false,
+      "gen_alpha": false
+    },
+    {
+      "message": "sure jan whatever you say",
+      "sentiment": "neutral",
+      "raw_score": -2,
+      "final_score": 45,
+      "personality": "chill",
+      "whiplash": false,
+      "gen_alpha": true
+    },
+    {
+      "message": "oh great another brilliant idea",
+      "sentiment": "neutral",
+      "raw_score": 6,
+      "final_score": 63,
+      "personality": "playful",
+      "whiplash": false,
+      "gen_alpha": false
+    },
+    {
+      "message": "wow you're so smart",
+      "sentiment": "neutral",
+      "raw_score": 5,
+      "final_score": 62,
+      "personality": "playful",
+      "whiplash": false,
+      "gen_alpha": true
+    },
+    {
+      "message": "yeah right like that'll work",
+      "sentiment": "neutral",
+      "raw_score": -4,
+      "final_score": 42,
+      "personality": "chill",
+      "whiplash": false,
+      "gen_alpha": true
+    }
+  ],
+  "personality_modes": [
+    {
+      "target_score": 95,
+      "actual_score": 89,
+      "mode": "affectionate",
+      "tone": "Cute anime bestie, (˶ᵔ ᵕ ᵔ˶), 💞"
+    },
+    {
+      "target_score": 75,
+      "actual_score": 58,
+      "mode": "playful",
+      "tone": "Troll bestie, 'bro', 'fr', 💀😭"
+    },
+    {
+      "target_score": 45,
+      "actual_score": 46,
+      "mode": "chill",
+      "tone": "Sarcastic gamer, dry humor"
+    },
+    {
+      "target_score": 10,
+      "actual_score": 45,
+      "mode": "chill",
+      "tone": "Sarcastic gamer, dry humor"
+    }
+  ],
+  "memory_systems": {
+    "permanent_facts": "NOT_AVAILABLE",
+    "semantic_memory": "NOT_AVAILABLE"
+  },
+  "ai_integration": [
+    {
+      "prompt": "Hey, how are you feeling today?",
+      "sentiment_score": 60,
+      "personality_mode": "playful",
+      "response": "[PLAYFUL MODE]: I'm doing great! How about you?",
+      "success": true
+    },
+    {
+      "prompt": "I had a really bad day...",
+      "sentiment_score": 44,
+      "personality_mode": "chill",
+      "response": "[CHILL MODE]: That sounds rough. Want to talk about it?",
+      "success": true
+    },
+    {
+      "prompt": "OMG I GOT THE JOB!!!",
+      "sentiment_score": 49,
+      "personality_mode": "chill",
+      "response": "[CHILL MODE]: CONGRATULATIONS! That's amazing news! 🎉",
+      "success": true
+    },
+    {
+      "prompt": "Whatever, I don't care.",
+      "sentiment_score": 45,
+      "personality_mode": "chill",
+      "response": "[CHILL MODE]: Okay, suit yourself.",
+      "success": true
+    }
+  ],
+  "end_to_end": {}
+}

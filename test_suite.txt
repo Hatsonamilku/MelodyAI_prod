@@ -1,0 +1,176 @@
+# melody_ai_v2/launch/test_suite.py
+import discord
+from discord.ext import commands, tasks
+import asyncio
+import random
+import os
+from dotenv import load_dotenv
+from services.discord_adapter import DiscordMelodyAdapter
+from services.ai_providers.deepseek_client import DeepSeekClient
+from test_suite_v3 import MelodyV3TestSuite
+from transformers import pipeline
+
+# Load environment variables from .env
+load_dotenv()
+TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+TEST_CHANNEL_ID = int(os.getenv("TEST_CHANNEL_ID", 941401145690185810))
+
+# NLP classifier for smart trigger detection
+nlp = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+CONVERSATIONAL_LABELS = ["talking to me", "general chat"]
+
+# Personality-based test users
+SIMULATED_USERS = {
+    "Bob the Rizzler": "super toxic, aggressive, trolling, insults everything",
+    "Dora the Explorer": "super annoying, complaining, overreacting, 'Karen' vibes",
+    "Patrick": "super stupid, clueless, says silly things",
+    "Rita": "super sweet, polite, intelligent, helpful"
+}
+
+# Base messages for AutoChat simulation per personality
+BASE_MESSAGES = {
+    "Bob the Rizzler": [
+        "LOL you can't be serious",
+        "That's pathetic, honestly",
+        "Bro you're so dumb fr",
+        "This is trash"
+    ],
+    "Dora the Explorer": [
+        "Excuse me! This is unacceptable!",
+        "I need to speak to your manager!",
+        "Why is this not done correctly?",
+        "This is ridiculous, seriously!"
+    ],
+    "Patrick": [
+        "Uh… what are we doing again?",
+        "I don't get it lol",
+        "Is this even real?",
+        "Why does this thing exist?"
+    ],
+    "Rita": [
+        "Hi! How can I help you today?",
+        "I think the solution is pretty simple here",
+        "Let’s take a logical approach",
+        "Everything will be fine, don’t worry!"
+    ]
+}
+
+class MelodyMultiUserPersonalityBot(commands.Bot):
+    def __init__(self):
+        intents = discord.Intents.all()
+        super().__init__(command_prefix="!", intents=intents)
+
+        self.melody_adapter = DiscordMelodyAdapter()
+        self.ai_provider = DeepSeekClient(api_key=DEEPSEEK_API_KEY)
+        self.test_suite = MelodyV3TestSuite()
+
+        # Auto-chat loop state
+        self.auto_chat_enabled = False
+        self.active_message_history = []  # Keep track of conversation for memory testing
+        self.periodic_summary_task.start()
+        self.auto_chat_loop_task.start()
+
+    async def on_ready(self):
+        print(f"🧪 Melody Multi-User Personality Bot logged in as {self.user.name}")
+        await self.change_presence(activity=discord.Game(name="Personality AutoChat 🔄"))
+        print(f"🔹 Listening only in channel ID {TEST_CHANNEL_ID}")
+
+        # Run full test suite on startup
+        print("🚀 Running full test suite on startup...")
+        await self.test_suite.run_complete_test_suite()
+        print("✅ Test suite complete!")
+
+    async def on_message(self, message: discord.Message):
+        if message.channel.id != TEST_CHANNEL_ID or message.author.bot:
+            return
+
+        content_lower = message.content.lower()
+
+        # Toggle AutoChat loop
+        if content_lower.startswith("!loop_test"):
+            self.auto_chat_enabled = not self.auto_chat_enabled
+            status = "enabled" if self.auto_chat_enabled else "disabled"
+            await message.channel.send(f"🤖 AutoChat loop is now **{status}**!")
+            return
+
+        # Smart NLP trigger
+        should_respond = False
+        if self.user in message.mentions:
+            should_respond = True
+        elif "melodyai" in content_lower:
+            should_respond = True
+        else:
+            try:
+                nlp_result = nlp(message.content, CONVERSATIONAL_LABELS)
+                confidence = nlp_result["scores"][nlp_result["labels"].index("talking to me")]
+                if confidence > 0.6:
+                    should_respond = True
+            except Exception as e:
+                print(f"⚠️ NLP error: {e}")
+
+        if should_respond:
+            response = await self.melody_adapter.handle_mention(message, self.ai_provider)
+            if response:
+                await message.reply(response)
+                self.active_message_history.append(response)
+
+        # Always log messages
+        await self.melody_adapter.process_discord_message(message, self.ai_provider, respond=False)
+        self.active_message_history.append(message.content)
+        print(f"💬 [Test Channel] {message.author}: {message.content}")
+
+    @tasks.loop(seconds=300)
+    async def periodic_summary_task(self):
+        if TEST_CHANNEL_ID in self.melody_adapter.active_conversations:
+            await self.melody_adapter._summarize_conversation(TEST_CHANNEL_ID, self.ai_provider)
+
+    @tasks.loop(seconds=15)
+    async def auto_chat_loop_task(self):
+        """Simulate multi-user personality conversation with MelodyAI"""
+        if not self.auto_chat_enabled:
+            return
+
+        channel = self.get_channel(TEST_CHANNEL_ID)
+        if not channel:
+            return
+
+        # Pick a random simulated user
+        simulated_user = random.choice(list(SIMULATED_USERS.keys()))
+        # Pick a random message from that user's personality set
+        simulated_message = random.choice(BASE_MESSAGES[simulated_user])
+        full_message = f"{simulated_user}: {simulated_message}"
+
+        # Send message to channel
+        sent_msg = await channel.send(full_message)
+        print(f"🤖 [AutoChat] {simulated_user} sent: {simulated_message}")
+        self.active_message_history.append(full_message)
+
+        # MelodyAI replies
+        response = await self.melody_adapter.handle_mention(sent_msg, self.ai_provider)
+        if response:
+            await sent_msg.reply(response)
+            print(f"🤖 [AutoChat Reply] MelodyAI: {response}")
+            self.active_message_history.append(response)
+
+    @periodic_summary_task.before_loop
+    @auto_chat_loop_task.before_loop
+    async def before_tasks(self):
+        await self.wait_until_ready()
+
+
+def create_multiuser_personality_bot():
+    return MelodyMultiUserPersonalityBot()
+
+
+if __name__ == "__main__":
+    if not TOKEN or not DEEPSEEK_API_KEY:
+        raise ValueError("⚠️ DISCORD_BOT_TOKEN or DEEPSEEK_API_KEY not found in .env")
+
+    bot = create_multiuser_personality_bot()
+
+    async def main():
+        async with bot:
+            await bot.start(TOKEN)
+
+    asyncio.run(main())

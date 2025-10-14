@@ -1,0 +1,78 @@
+{
+  "users": {
+    "test_user": {
+      "personal": {
+        "name": "Mira",
+        "age": "22"
+      },
+      "location": {
+        "country": "Mauritius"
+      },
+      "gaming": {
+        "favorite_game": "Minecraft"
+      },
+      "anime": {
+        "favorite_anime": "Naruto"
+      },
+      "life_events": {
+        "graduation": "true",
+        "new_job": "true"
+      },
+      "health_status": [
+        {
+          "status": "sick",
+          "severity": 2,
+          "reported_at": "2025-10-14T10:00:00",
+          "follow_up_scheduled": "2025-10-15T10:00:00",
+          "is_resolved": false
+        }
+      ]
+    },
+    "alice": {
+      "personal": {
+        "name": "Alice",
+        "age": "25"
+      },
+      "location": {
+        "country": "Spain"
+      },
+      "gaming": {
+        "favorite_game": "Valorant"
+      },
+      "anime": {
+        "favorite_anime": "Attack on Titan"
+      },
+      "life_events": {
+        "marriage": "true"
+      },
+      "health_status": [
+        {
+          "status": "recovered",
+          "severity": 1,
+          "reported_at": "2025-10-12T14:00:00",
+          "follow_up_scheduled": null,
+          "is_resolved": true
+        }
+      ]
+    },
+    "bob": {
+      "personal": {
+        "name": "Bob",
+        "age": "30"
+      },
+      "location": {
+        "country": "USA"
+      },
+      "gaming": {
+        "favorite_game": "League of Legends"
+      },
+      "anime": {
+        "favorite_anime": "One Piece"
+      },
+      "life_events": {
+        "relocation": "true"
+      },
+      "health_status": []
+    }
+  }
+}

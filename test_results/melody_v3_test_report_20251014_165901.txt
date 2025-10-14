@@ -1,0 +1,100 @@
+🎵 MELODY AI V3 - COMPREHENSIVE TEST REPORT
+============================================================
+Test Date: 2025-10-14 16:59:01
+============================================================
+
+🎵 MELODY AI V3 - COMPREHENSIVE TEST SUITE
+============================================================
+🧠 TESTING EMOTIONAL SCORING...
+  'omg i love you so much bestie!...'
+    → Sentiment: positive | Raw: 6 | Final: 59
+    → Personality: playful | Gen Alpha: False
+  'you're literally my favorite p...'
+    → Sentiment: neutral | Raw: 5 | Final: 62
+    → Personality: playful | Gen Alpha: True
+  'thank you for always being the...'
+    → Sentiment: neutral | Raw: 5 | Final: 63
+    → Personality: playful | Gen Alpha: True
+  'bro that's so funny 💀😭...'
+    → Sentiment: neutral | Raw: -4 | Final: 50
+    → Personality: playful | Gen Alpha: False
+  'no cap you're wild for that fr...'
+    → Sentiment: positive | Raw: 9 | Final: 64
+    → Personality: playful | Gen Alpha: True
+  'LMAO you did NOT just say that...'
+    → Sentiment: neutral | Raw: 0 | Final: 56
+    → Personality: playful | Gen Alpha: False
+  'yeah whatever i guess...'
+    → Sentiment: neutral | Raw: 0 | Final: 53
+    → Personality: playful | Gen Alpha: True
+  'meh could be better...'
+    → Sentiment: neutral | Raw: 0 | Final: 52
+    → Personality: playful | Gen Alpha: False
+  'sure whatever you say...'
+    → Sentiment: neutral | Raw: 0 | Final: 51
+    → Personality: playful | Gen Alpha: True
+  'whatever i don't care...'
+    → Sentiment: neutral | Raw: 0 | Final: 51
+    → Personality: playful | Gen Alpha: True
+  'as if i'd believe that...'
+    → Sentiment: neutral | Raw: 0 | Final: 51
+    → Personality: playful | Gen Alpha: False
+  'sure jan whatever you say...'
+    → Sentiment: neutral | Raw: 0 | Final: 50
+    → Personality: playful | Gen Alpha: True
+  'oh great another brilliant ide...'
+    → Sentiment: neutral | Raw: 4 | Final: 56
+    → Personality: playful | Gen Alpha: False
+  'wow you're so smart...'
+    → Sentiment: neutral | Raw: 3 | Final: 57
+    → Personality: playful | Gen Alpha: True
+  'yeah right like that'll work...'
+    → Sentiment: neutral | Raw: 0 | Final: 53
+    → Personality: playful | Gen Alpha: True
+
+🎭 TESTING PERSONALITY MODES...
+  Target 95 → Actual: 80 → AFFECTIONATE
+    Tone: Cute anime bestie, (˶ᵔ ᵕ ᵔ˶), 💞
+  Target 75 → Actual: 65 → PLAYFUL
+    Tone: Troll bestie, 'bro', 'fr', 💀😭
+  Target 45 → Actual: 56 → PLAYFUL
+    Tone: Troll bestie, 'bro', 'fr', 💀😭
+  Target 10 → Actual: 53 → PLAYFUL
+    Tone: Troll bestie, 'bro', 'fr', 💀😭
+
+💾 TESTING MEMORY SYSTEMS...
+  ⚠️  Permanent Facts: System not available
+  ⚠️  Semantic Memory: System not available
+
+⚡ TESTING AI INTEGRATION...
+  ✅ Score: 56 | Mode: playful
+    Prompt: 'Hey, how are you feeling today?'
+    Response: '[PLAYFUL MODE]: I'm doing great! How about you?'
+  ✅ Score: 50 | Mode: playful
+    Prompt: 'I had a really bad day...'
+    Response: '[PLAYFUL MODE]: That sounds rough. Want to talk about it?'
+  ✅ Score: 50 | Mode: playful
+    Prompt: 'OMG I GOT THE JOB!!!'
+    Response: '[PLAYFUL MODE]: CONGRATULATIONS! That's amazing news! 🎉'
+  ✅ Score: 50 | Mode: playful
+    Prompt: 'Whatever, I don't care.'
+    Response: '[PLAYFUL MODE]: Okay, suit yourself.'
+
+============================================================
+📊 TEST REPORT SUMMARY
+============================================================
+🧠 Emotional Core: 15 tests
+   Final Score Range: 50-64
+   Average Final Score: 55.2
+   Personality Distribution: {'playful': 15}
+   Gen Alpha Messages: 9/15
+🎭 Personality Modes: 4/4 modes tested
+💾 Memory Systems: 0 permanent facts | Semantic: ❌
+⚡ AI Integration: 4/4 successful
+
+💡 RECOMMENDATIONS:
+   ⚠️  Semantic memory failed - FAISS model needs download
+
+📁 Reports saved to:
+   Text: test_results\melody_v3_test_report_20251014_165901.txt
+   JSON: test_results\melody_v3_test_data_20251014_165901.json
