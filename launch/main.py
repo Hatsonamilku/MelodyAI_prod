@@ -37,7 +37,7 @@ class MelodyAILauncher:
         self.bot_core = None
         self.command_system = None
         
-    async def launch(self):
+    async def launch(self):  # 🆕 ADDED: 'def' keyword and proper indentation
         """Launch the complete Melody AI system"""
         print("🎵 Starting Melody AI v2...")
         
@@ -53,10 +53,19 @@ class MelodyAILauncher:
         # Setup command system
         self.command_system = CommandSystem(self.bot_core.get_bot())
         
-        # 🆕 ADD CHAMP COMMANDS
+        # 🆕 ADD CHAMP COMMANDS - WITH CONFLICT RESOLUTION
         if riot_key:
+            bot = self.bot_core.get_bot()
+            
+            # Remove any existing champ commands to avoid conflicts
+            existing_commands = ['champ', 'champion', 'leaguechamp']
+            for cmd_name in existing_commands:
+                if bot.get_command(cmd_name):
+                    bot.remove_command(cmd_name)
+                    print(f"🔄 Removed existing command: {cmd_name}")
+            
             from services.champ_module import setup_champ_commands
-            await setup_champ_commands(self.bot_core.get_bot(), riot_key, self.bot_core.ai_client)
+            await setup_champ_commands(bot, riot_key, self.bot_core.ai_client)
             print("🎮 Champion commands loaded!")
         else:
             print("⚠️  RIOT_API_KEY not found - !champ command disabled")
