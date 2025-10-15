@@ -1,11 +1,10 @@
-# melody_ai_v2/launch/main.py
 import asyncio
 import os
 import signal
 import sys
 from dotenv import load_dotenv
 
-# 🛠️ FIX: Properly load environment from root
+# 🛠️ Load environment from root
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 env_path = os.path.join(root_dir, '.env')
 load_dotenv(env_path)
@@ -28,54 +27,64 @@ if not discord_token:
     print("💡 Make sure your .env file is in the root folder and contains DISCORD_BOT_TOKEN")
     sys.exit(1)
 
-# Import our bot components
+# Import bot components
 from launch.bot_core import MelodyBotCore
 from launch.command_system import CommandSystem
+from brain.core_intelligence.intelligence_orchestrator import intelligence_orchestrator
+
+# 🆕 ADD TEST COMMANDS CLASS HERE
+import discord
+from discord.ext import commands
+
+class TestCommands(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command()
+    async def test_send(self, ctx):
+        """Test if bot can send messages in this channel"""
+        print(f"🔍 TEST: Manual test send command received in {ctx.channel.name}")
+        try:
+            msg = await ctx.send("✅ Test message received! Bot can send messages here.")
+            print(f"✅ TEST: Successfully sent message with ID: {msg.id}")
+        except Exception as e:
+            print(f"❌ TEST: Failed to send: {e}")
+
+    @commands.command()
+    async def test_channel(self, ctx):
+        """Debug channel permissions"""
+        print(f"🔍 DEBUG CHANNEL: {ctx.channel.name} (ID: {ctx.channel.id})")
+        
+        perms = ctx.channel.permissions_for(ctx.guild.me)
+        print(f"🔍 DEBUG CHANNEL: Send Messages: {perms.send_messages}")
+        print(f"🔍 DEBUG CHANNEL: Read Messages: {perms.read_messages}")
+        print(f"🔍 DEBUG CHANNEL: View Channel: {perms.view_channel}")
+        
+        await ctx.send(f"🔍 Channel Debug: Send Messages = {perms.send_messages}")
+
+    @commands.command()
+    async def test_ping(self, ctx):
+        """Simple ping test"""
+        await ctx.send("🏓 Pong! Bot is responsive!")
 
 class MelodyAILauncher:
     def __init__(self):
         self.bot_core = None
         self.command_system = None
-        
-    async def launch(self):  # 🆕 ADDED: 'def' keyword and proper indentation
-        """Launch the complete Melody AI system"""
+
+    async def launch(self):
         print("🎵 Starting Melody AI v2...")
-        
-        # Initialize bot core
         self.bot_core = MelodyBotCore(command_prefix="!")
+       
         
-        # Setup AI client
-        if deepseek_key:
-            self.bot_core.setup_ai_client(deepseek_key)
-        else:
-            print("⚠️  DEEPSEEK_API_KEY not found - AI responses will be limited")
-        
-        # Setup command system
-        self.command_system = CommandSystem(self.bot_core.get_bot())
-        
-        # 🆕 ADD CHAMP COMMANDS - WITH CONFLICT RESOLUTION
-        if riot_key:
-            bot = self.bot_core.get_bot()
-            
-            # Remove any existing champ commands to avoid conflicts
-            existing_commands = ['champ', 'champion', 'leaguechamp']
-            for cmd_name in existing_commands:
-                if bot.get_command(cmd_name):
-                    bot.remove_command(cmd_name)
-                    print(f"🔄 Removed existing command: {cmd_name}")
-            
-            from services.champ_module import setup_champ_commands
-            await setup_champ_commands(bot, riot_key, self.bot_core.ai_client)
-            print("🎮 Champion commands loaded!")
-        else:
-            print("⚠️  RIOT_API_KEY not found - !champ command disabled")
+        # 🆕 ADD THIS ONE LINE to load test commands
+        await self.bot_core.get_bot().add_cog(TestCommands(self.bot_core.get_bot()))
+        print("✅ Test commands loaded! Use !test_ping, !test_send, !test_channel.")
         
         print("✅ All systems initialized! Logging into Discord...")
-        
+
         try:
-            # Start the bot
             await self.bot_core.get_bot().start(discord_token)
-            return True
         except KeyboardInterrupt:
             return True
         except Exception as e:
@@ -85,7 +94,6 @@ class MelodyAILauncher:
             return False
 
     async def shutdown(self):
-        """Graceful shutdown"""
         print("\n🎵 Melody AI is shutting down gracefully...")
         if self.bot_core:
             await self.bot_core.close()

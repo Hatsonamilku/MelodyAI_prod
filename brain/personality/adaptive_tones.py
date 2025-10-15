@@ -1,8 +1,7 @@
 # ==========================================================
 # 🧠 melody_ai_v2/brain/personality/adaptive_tones.py
 # ----------------------------------------------------------
-# MelodyAI Ultimate Adaptive Response System v3.0
-# Integrates EmotionalCore + AdaptiveToneSystem + Final Score Mapping
+# MelodyAI Ultimate Adaptive Response System v3.1 - CLEAN FIX
 # ==========================================================
 
 import random
@@ -22,28 +21,24 @@ class UltimateResponseSystem:
         }
         
         # ----------------------------
-        # 🎨 Adaptive Tone System Settings
+        # 🎨 SUBTLE Tone Enhancements
         # ----------------------------
         self.response_styles = {
             "affectionate": {
-                "openers": ["Aww, you're so sweet! ", "This makes me so happy! "],
-                "expressive_actions": ["*sparkles with joy*", "*heart swells with happiness*", "*beams brightly*"],
-                "emojis": ["💖", "✨", "🥰", "🌟", "💫"]
+                "emojis": ["💖", "✨", "🥰", "🌟", "💫"],
+                "subtle_enhancements": ["Aww ", "So sweet ", ""]
             },
             "playful": {
-                "openers": ["Haha, okay! ", "No cap, that's funny! "],
-                "expressive_actions": ["*giggles*", "*nudges you playfully*", "*laughs lightly*"],
-                "emojis": ["😂", "😎", "👍", "🙌", "✨"]
+                "emojis": ["😂", "😎", "✨", "🙌", "💀"],
+                "subtle_enhancements": ["Haha ", "Lol ", ""]
             },
             "chill": {
-                "openers": ["Okay, got it. ", "Hmm, I see. "],
-                "expressive_actions": ["*tilts head*", "*thinks for a moment*", "*nods slightly*"],
-                "emojis": ["💫", "✨", "🎵"]
+                "emojis": ["💫", "✨", "🎵"],
+                "subtle_enhancements": ["Okay ", "I see ", ""]
             },
             "cold": {
-                "openers": ["...", "If you say so... "],
-                "expressive_actions": ["*shrugs*", "*rolls eyes*", "*sips tea*"],
-                "emojis": ["😏", "💀", "🙄"]
+                "emojis": ["😏", "💀", "🙄"],
+                "subtle_enhancements": ["...", "Hmm ", ""]
             }
         }
         
@@ -59,44 +54,51 @@ class UltimateResponseSystem:
         return "chill"  # fallback
 
     # ==========================================================
-    # 🎭 Build expressive response
+    # 🎭 Build SUBTLE expressive response
     # ==========================================================
     def build_response(self, base_message: str, final_score: int, contains_gen_alpha: bool, toxicity_level: int) -> str:
         mode = self.get_personality_mode(final_score)
         style = self.response_styles[mode]
 
-        # Add opener
-        if style["openers"]:
-            base_message = random.choice(style["openers"]) + base_message
+        # Start with clean base message
+        final_response = base_message
 
-        # Add expressive action (30% chance)
-        if random.random() < 0.3 and style["expressive_actions"]:
-            action = random.choice(style["expressive_actions"])
-            base_message = f"{action} {base_message}"
+        # Add subtle enhancement (20% chance, and only if it fits naturally)
+        if random.random() < 0.2 and style["subtle_enhancements"]:
+            enhancement = random.choice(style["subtle_enhancements"])
+            # Only add if it doesn't create awkward double openings
+            if enhancement and not any(opener in final_response.lower() for opener in ["haha", "lol", "aww", "okay"]):
+                final_response = enhancement + final_response
 
-        # Add emoji (50% chance)
-        if random.random() < 0.5 and style["emojis"]:
-            base_message += f" {random.choice(style['emojis'])}"
+        # Add emoji (40% chance) - but only if not too many already
+        if random.random() < 0.4 and style["emojis"]:
+            current_emojis = sum(1 for char in final_response if char in ['💖','✨','🥰','🌟','💫','😂','😎','🙌','💀','🎵','😏','🙄'])
+            if current_emojis < 2:  # Don't add if already has emojis
+                final_response += f" {random.choice(style['emojis'])}"
 
-        # Add Gen Alpha flavor (40% chance if detected)
-        if contains_gen_alpha and random.random() < 0.4:
-            words = base_message.split()
-            insert_pos = random.randint(0, len(words))
-            words.insert(insert_pos, random.choice(self.gen_alpha_flavors))
-            base_message = " ".join(words)
+        # Add Gen Alpha flavor (30% chance if detected and not already present)
+        if contains_gen_alpha and random.random() < 0.3:
+            if not any(flavor in final_response.lower() for flavor in self.gen_alpha_flavors):
+                # Add at end or in middle naturally
+                if random.random() < 0.5:
+                    final_response += f" {random.choice(self.gen_alpha_flavors)}"
+                else:
+                    words = final_response.split()
+                    if len(words) > 3:
+                        insert_pos = random.randint(1, len(words)-1)
+                        words.insert(insert_pos, random.choice(self.gen_alpha_flavors))
+                        final_response = " ".join(words)
 
-        # Add sassy comebacks if cold mode or high toxicity
-        if mode == "cold" or toxicity_level >= 8:
+        # Add sassy comebacks only for cold mode or high toxicity
+        if (mode == "cold" or toxicity_level >= 8) and random.random() < 0.4:
             comebacks = [
                 "Yikes, someone woke up and chose violence today 💀",
                 "Okay, projection is strong with this one 🎬",
-                "Anyways, as I was saying before the interruption... 🎤",
-                "I'd roast you back but my mom said not to burn trash 🔥"
+                "Anyways, as I was saying... 🎤"
             ]
-            if random.random() < 0.5:
-                base_message += f" {random.choice(comebacks)}"
+            final_response += f" {random.choice(comebacks)}"
 
-        return base_message
+        return final_response
 
     # ==========================================================
     # 🧠 Full response pipeline
