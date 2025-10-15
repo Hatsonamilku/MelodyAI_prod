@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MelodyAI Personality Form</title>
+<style>
+    :root {
+        --primary: #0056b3;
+        --secondary: #003366;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --success: #28a745;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #f4f6f8; color: var(--dark); line-height: 1.6; padding: 20px; min-height: 100vh; }
+    .container { max-width: 800px; margin: 0 auto; background: #fff; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); overflow: hidden; }
+    header { background-color: var(--primary); color: white; padding: 25px 20px; text-align: center; }
+    h1 { font-size: 2rem; margin-bottom: 5px; }
+    .subtitle { font-size: 1rem; opacity: 0.9; }
+    .form-container { padding: 25px; }
+    .section { margin-bottom: 25px; border-bottom: 1px solid #e0e0e0; padding-bottom: 20px; }
+    .section:last-of-type { border-bottom: none; }
+    .section-title { font-size: 1.3rem; color: var(--secondary); margin-bottom: 12px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; }
+    input, textarea, select { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,86,179,0.2); }
+    textarea { min-height: 80px; resize: vertical; }
+    .hint { font-size: 0.85rem; color: #666; margin-top: 3px; font-style: italic; }
+    .buttons { display: flex; justify-content: space-between; margin-top: 20px; }
+    button { padding: 10px 20px; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    #saveBtn { background-color: var(--success); color: white; }
+    #saveBtn:hover { background-color: #218838; }
+    #resetBtn { background-color: #f0f0f0; color: #333; }
+    #resetBtn:hover { background-color: #e0e0e0; }
+    .notification { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; background-color: var(--success); color: white; border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.15); transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 1000; }
+    .notification.show { transform: translateY(0); opacity: 1; }
+    @media (max-width: 600px) {
+        .container { border-radius: 8px; }
+        .form-container { padding: 15px; }
+        h1 { font-size: 1.6rem; }
+        .buttons { flex-direction: column; gap: 10px; }
+        button { width: 100%; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>MelodyAI Personality Form</h1>
+<p class="subtitle">Please provide accurate information to enable your AI twin to simulate your communication style.</p>
+</header>
+<div class="form-container">
+<form id="personalityForm">
+
+<!-- Section 1: Personal Information -->
+<div class="section">
+<h2 class="section-title">Section 1: Personal Information</h2>
+<div class="form-group"><label for="fullName">Full Name / Preferred Name:</label><input type="text" id="fullName"></div>
+<div class="form-group"><label for="age">Age / Date of Birth:</label><input type="text" id="age"></div>
+<div class="form-group"><label for="pronouns">Pronouns:</label>
+<select id="pronouns"><option value="">Select pronouns</option><option value="She/Her">She/Her</option><option value="He/Him">He/Him</option><option value="They/Them">They/Them</option><option value="Other">Other</option></select></div>
+<div class="form-group"><label for="languages">Languages Spoken:</label><input type="text" id="languages"></div>
+</div>
+
+<!-- Section 2: Personality & Speech -->
+<div class="section">
+<h2 class="section-title">Section 2: Personality & Speech</h2>
+<div class="form-group"><label for="descriptors">Descriptive Keywords (3-5 words):</label><input type="text" id="descriptors"></div>
+<div class="form-group"><label for="tone">Typical Tone:</label>
+<select id="tone"><option value="">Select tone</option><option value="Formal">Formal</option><option value="Informal">Informal</option><option value="Humorous">Humorous</option><option value="Serious">Serious</option><option value="Friendly">Friendly</option><option value="Other">Other</option></select></div>
+<div class="form-group"><label for="expressions">Signature Phrases / Expressions:</label><textarea id="expressions"></textarea></div>
+<div class="form-group"><label for="avoidWords">Words / Phrases to Avoid:</label><textarea id="avoidWords"></textarea></div>
+<div class="form-group"><label for="typingQuirks">Typing Habits or Quirks:</label><textarea id="typingQuirks"></textarea></div>
+</div>
+
+<!-- Section 3: Interests & Hobbies -->
+<div class="section">
+<h2 class="section-title">Section 3: Interests & Hobbies</h2>
+<div class="form-group"><label for="music">Preferred Music / Artists:</label><textarea id="music"></textarea></div>
+<div class="form-group"><label for="movies">Favorite Movies / Series / Anime:</label><textarea id="movies"></textarea></div>
+<div class="form-group"><label for="games">Preferred Games:</label><textarea id="games"></textarea></div>
+<div class="form-group"><label for="hobbies">Hobbies / Activities:</label><textarea id="hobbies"></textarea></div>
+<div class="form-group"><label for="topicsLove">Topics of Interest:</label><textarea id="topicsLove"></textarea></div>
+<div class="form-group"><label for="topicsAvoid">Topics to Avoid:</label><textarea id="topicsAvoid"></textarea></div>
+</div>
+
+<!-- Section 4: Social Style -->
+<div class="section">
+<h2 class="section-title">Section 4: Social Style</h2>
+<div class="form-group"><label for="greetings">Typical Greetings / Farewells:</label><textarea id="greetings"></textarea></div>
+<div class="form-group"><label for="jokingStyle">Humor / Joking Style:</label><textarea id="jokingStyle"></textarea></div>
+<div class="form-group"><label for="reactToJokes">Reactions to Humor / Teasing:</label><textarea id="reactToJokes"></textarea></div>
+<div class="form-group"><label for="nicknamesUse">Commonly Used Nicknames:</label><textarea id="nicknamesUse"></textarea></div>
+<div class="form-group"><label for="sarcasmLevel">Sarcasm Level:</label>
+<select id="sarcasmLevel"><option value="">Select sarcasm level</option><option value="None">None</option><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option><option value="Extreme">Extreme</option></select></div>
+</div>
+
+<!-- Section 5: Emotional Patterns -->
+<div class="section">
+<h2 class="section-title">Section 5: Emotional Patterns</h2>
+<div class="form-group"><label for="happyReaction">Reaction when Happy / Excited:</label><textarea id="happyReaction"></textarea></div>
+<div class="form-group"><label for="boredReaction">Reaction when Bored / Tired:</label><textarea id="boredReaction"></textarea></div>
+<div class="form-group"><label for="angryReaction">Reaction when Annoyed / Angry:</label><textarea id="angryReaction"></textarea></div>
+<div class="form-group"><label for="nervousReaction">Reaction when Nervous / Shy:</label><textarea id="nervousReaction"></textarea></div>
+<div class="form-group"><label for="surprisedReaction">Reaction when Surprised / Shocked:</label><textarea id="surprisedReaction"></textarea></div>
+</div>
+
+<!-- Section 6: Fun / Quirky Stuff -->
+<div class="section">
+<h2 class="section-title">Section 6: Fun / Quirky Stuff</h2>
+<div class="form-group"><label for="habits">Unique Habits / Random Facts:</label><textarea id="habits"></textarea></div>
+<div class="form-group"><label for="favoriteJokes">Favorite Jokes / Memes:</label><textarea id="favoriteJokes"></textarea></div>
+<div class="form-group"><label for="speechPatterns">Unique Speech Patterns:</label><textarea id="speechPatterns"></textarea></div>
+</div>
+
+<!-- Section 7: Example Conversations -->
+<div class="section">
+<h2 class="section-title">Section 7: Example Conversations (Optional)</h2>
+<div class="form-group"><label for="conversation1">Example Conversation 1:</label><textarea id="conversation1"></textarea></div>
+<div class="form-group"><label for="conversation2">Example Conversation 2:</label><textarea id="conversation2"></textarea></div>
+<div class="form-group"><label for="conversation3">Example Conversation 3:</label><textarea id="conversation3"></textarea></div>
+</div>
+
+<!-- Section 8: Outlier / Extra Personality Patterns -->
+<div class="section">
+<h2 class="section-title">Section 8: Outlier / Extra Personality Patterns (Optional)</h2>
+<div class="form-group"><label>Do you want your AI to use unusual or exaggerated speech patterns?</label>
+<select id="extraPatterns"><option value="">Select</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+<div class="form-group"><label>If yes, select the styles:</label>
+<select id="patternStyles" multiple>
+<option value="Roasting / Sarcastic">Roasting / Sarcastic</option>
+<option value="Gen-Z / Gen-Alpha slang">Gen-Z / Gen-Alpha slang</option>
+<option value="Gamer / Twitch language">Gamer / Twitch language</option>
+<option value="Meme / Troll style">Meme / Troll style</option>
+<option value="Other">Other (please specify)</option>
+</select></div>
+<div class="form-group"><label>Should the AI occasionally roast / tease in conversation?</label>
+<select id="roastOption"><option value="">Select</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+<div class="form-group"><label>Additional fun / chaotic behaviors:</label><textarea id="extraBehaviors"></textarea></div>
+</div>
+
+<div class="buttons">
+<button type="button" id="resetBtn">Reset Form</button>
+<button type="button" id="saveBtn">Save as TXT File</button>
+</div>
+</form>
+</div>
+</div>
+
+<div class="notification" id="notification">Your personality file has been downloaded!</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Reset button
+    document.getElementById('resetBtn').addEventListener('click', function() {
+        if(confirm('Reset all fields?')) { document.getElementById('personalityForm').reset(); }
+    });
+
+    // Save button
+    document.getElementById('saveBtn').addEventListener('click', function() {
+        const fields = [
+            'fullName','age','pronouns','languages','descriptors','tone','expressions','avoidWords','typingQuirks',
+            'music','movies','games','hobbies','topicsLove','topicsAvoid','greetings','jokingStyle','reactToJokes',
+            'nicknamesUse','sarcasmLevel','happyReaction','boredReaction','angryReaction','nervousReaction','surprisedReaction',
+            'habits','favoriteJokes','speechPatterns','conversation1','conversation2','conversation3',
+            'extraPatterns','patternStyles','roastOption','extraBehaviors'
+        ];
+        let txtContent = `🎀 MelodyAI Emotion Speech Engine V5 (Data Analysis) 🎀\n\n`;
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            let value = el ? (el.value || 'Not specified') : 'Not specified';
+            txtContent += `${id}: ${value}\n`;
+        });
+        txtContent += `\nGenerated on: ${new Date().toLocaleString()}\n🎀 AI twin ready! 🎀`;
+        const blob = new Blob([txtContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url;
+        a.download = `MelodyAI_Personality_${document.getElementById('fullName').value || 'Profile'}.txt`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        document.getElementById('notification').classList.add('show');
+        setTimeout(() => document.getElementById('notification').classList.remove('show'), 3000);
+    });
+});
+</script>
+</body>
+</html>
