@@ -1,112 +1,46 @@
 {
   "users": {
     "Patrick": {
-      "facts": [
-        {
-          "key": "name",
-          "value": "Patrick",
-          "category": "personal",
-          "confidence": 3,
-          "first_mentioned": "2025-10-15T18:31:14.600826",
-          "last_mentioned": "2025-10-15T18:31:14.600826",
-          "mention_count": 1
-        },
-        {
-          "key": "location",
-          "value": "Texas",
-          "category": "location",
-          "confidence": 2,
-          "first_mentioned": "2025-10-15T18:31:14.600826",
-          "last_mentioned": "2025-10-15T18:31:14.600826",
-          "mention_count": 1
-        },
-        {
-          "key": "likes_",
-          "value": "yes",
-          "category": "preferences",
-          "confidence": 1,
-          "first_mentioned": "2025-10-15T18:31:48.721545",
-          "last_mentioned": "2025-10-15T18:31:48.721545",
-          "mention_count": 1
-        }
-      ]
+      "facts": []
     },
     "Rita": {
-      "facts": [
-        {
-          "key": "age",
-          "value": "28 years old",
-          "category": "personal",
-          "confidence": 2,
-          "first_mentioned": "2025-10-15T18:31:29.458588",
-          "last_mentioned": "2025-10-15T18:31:29.458588",
-          "mention_count": 1
-        },
-        {
-          "key": "name",
-          "value": "Rita",
-          "category": "personal",
-          "confidence": 3,
-          "first_mentioned": "2025-10-15T18:32:15.275247",
-          "last_mentioned": "2025-10-15T18:32:15.275247",
-          "mention_count": 1
-        },
-        {
-          "key": "location",
-          "value": "Seoul",
-          "category": "location",
-          "confidence": 2,
-          "first_mentioned": "2025-10-15T18:32:15.275247",
-          "last_mentioned": "2025-10-15T18:32:15.275247",
-          "mention_count": 1
-        }
-      ]
+      "facts": []
     },
     "Bob the Rizzler": {
+      "facts": []
+    },
+    "Yuli": {
+      "facts": []
+    },
+    "melodyoftime": {
+      "facts": []
+    },
+    "419918999292346368": {
+      "facts": []
+    },
+    "273365578020814848": {
       "facts": [
         {
-          "key": "location",
-          "value": "Texas",
-          "category": "location",
-          "confidence": 2,
-          "first_mentioned": "2025-10-15T18:31:21.507467",
-          "last_mentioned": "2025-10-15T18:31:21.507467",
-          "mention_count": 1
-        }
-      ],
-      "health_status": [
-        {
-          "status": "sick",
-          "severity": 2,
-          "reported_at": "2025-10-15T18:31:39.917131",
-          "is_resolved": false
+          "key": "name",
+          "value": "Implementing",
+          "category": "personal",
+          "confidence": 3,
+          "first_mentioned": "2025-10-15T23:20:53.766744",
+          "last_mentioned": "2025-10-15T23:20:53.768746",
+          "mention_count": 2
         }
       ]
     },
-    "Yuli": {
+    "melancia8488": {
       "facts": [
         {
-          "key": "age",
-          "value": "22 years old",
+          "key": "name",
+          "value": "Implementing",
           "category": "personal",
-          "confidence": 2,
-          "first_mentioned": "2025-10-15T18:32:10.991197",
-          "last_mentioned": "2025-10-15T18:32:10.991197",
+          "confidence": 3,
+          "first_mentioned": "2025-10-15T23:20:53.763178",
+          "last_mentioned": "2025-10-15T23:20:53.763178",
           "mention_count": 1
-        }
-      ],
-      "health_status": [
-        {
-          "status": "sick",
-          "severity": 2,
-          "reported_at": "2025-10-15T18:31:25.191934",
-          "is_resolved": false
-        },
-        {
-          "status": "sick",
-          "severity": 2,
-          "reported_at": "2025-10-15T18:31:45.141028",
-          "is_resolved": false
         }
       ]
     }
