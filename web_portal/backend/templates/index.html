@@ -151,6 +151,38 @@
         .status.online { background: rgba(0, 184, 148, 0.3); color: #00b894; }
         .status.offline { background: rgba(255, 118, 117, 0.3); color: #ff7675; }
         
+        /* Server Selection Styles */
+        .server-selector {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .selector-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .selector-select {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        .selector-select option {
+            background: #1a1a2e;
+            color: white;
+        }
+        .current-target {
+            background: rgba(0, 184, 148, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
         /* Analytics Section */
         .analytics-dashboard {
             background: rgba(255,255,255,0.05);
@@ -202,7 +234,7 @@
     <div class="container">
         <div class="header">
             <h1 class="cloud-title">🌩️ Hatsona Milku</h1>
-            <p class="subtitle">Melody AI Web Portal - The Cloud Speaks</p>
+            <p class="subtitle">Melody AI Web Portal - Multi-Server Broadcast Control</p>
         </div>
         
         <div class="dashboard">
@@ -237,6 +269,29 @@
                     </div>
                 </div>
                 
+                <!-- Server/Channel Selection -->
+                <div class="control-group">
+                    <div class="control-title">🏠 Server & Channel</div>
+                    <div class="server-selector">
+                        <div class="selector-row">
+                            <select class="selector-select" id="serverSelect" onchange="loadChannels()">
+                                <option value="">Loading servers...</option>
+                            </select>
+                        </div>
+                        <div class="selector-row">
+                            <select class="selector-select" id="channelSelect" onchange="setTargetChannel()">
+                                <option value="">Select a server first</option>
+                            </select>
+                        </div>
+                        <div class="current-target" id="currentTarget">
+                            Target: Not set
+                        </div>
+                    </div>
+                    <button class="control-btn" onclick="refreshServers()">
+                        🔄 Refresh Server List
+                    </button>
+                </div>
+                
                 <div class="control-group">
                     <div class="control-title">🤖 Auto-Yap Mode</div>
                     <button class="control-btn" id="autoYapBtn" onclick="toggleAutoYap()">
@@ -250,6 +305,7 @@
                         <div>🌐 Web Clients: <span id="clientCount">0</span></div>
                         <div>🤖 Discord: <span id="discordStatus">Disconnected</span></div>
                         <div>💫 Messages: <span id="messageCount">0</span></div>
+                        <div>🏠 Servers: <span id="serverCount">0</span></div>
                     </div>
                 </div>
             </div>
@@ -292,10 +348,12 @@
         const socket = io();
         let autoYapEnabled = false;
         let currentAnalytics = {};
+        let currentTargetChannel = null;
 
         // Socket event handlers
         socket.on('connect', () => {
             updateStatus('online', '✅ Connected to cloud');
+            loadServers();
         });
 
         socket.on('disconnect', () => {
@@ -328,6 +386,134 @@
             currentAnalytics = analytics;
             updateAnalyticsDisplay();
         });
+
+        socket.on('target_channel_changed', (data) => {
+            showNotification(`Target channel changed to: ${data.channel_name}`);
+            updateCurrentTarget(data.channel_name);
+        });
+
+        // Server/Channel Management
+        function loadServers() {
+            fetch('/api/servers')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(servers => {
+                    const serverSelect = document.getElementById('serverSelect');
+                    serverSelect.innerHTML = '<option value="">Select a server</option>';
+                    
+                    servers.forEach(server => {
+                        const option = document.createElement('option');
+                        option.value = server.id;
+                        option.textContent = `${server.name} (${server.member_count} members)`;
+                        serverSelect.appendChild(option);
+                    });
+                    
+                    document.getElementById('serverCount').textContent = servers.length;
+                    console.log(`Loaded ${servers.length} servers`);
+                    
+                    if (servers.length > 0) {
+                        updateCurrentTarget('Not set - select a channel');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading servers:', error);
+                    document.getElementById('serverSelect').innerHTML = '<option value="">Error loading servers</option>';
+                });
+        }
+
+        function loadChannels() {
+            const serverSelect = document.getElementById('serverSelect');
+            const serverId = serverSelect.value;
+            const channelSelect = document.getElementById('channelSelect');
+            
+            if (!serverId) {
+                channelSelect.innerHTML = '<option value="">Select a server first</option>';
+                return;
+            }
+            
+            channelSelect.innerHTML = '<option value="">Loading channels...</option>';
+            
+            fetch(`/api/servers/${serverId}/channels`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(channels => {
+                    channelSelect.innerHTML = '<option value="">Select a channel</option>';
+                    
+                    if (channels.length === 0) {
+                        channelSelect.innerHTML = '<option value="">No channels available</option>';
+                        return;
+                    }
+                    
+                    channels.forEach(channel => {
+                        const option = document.createElement('option');
+                        option.value = channel.id;
+                        option.textContent = `#${channel.name}`;
+                        if (channel.topic) {
+                            option.title = channel.topic;
+                        }
+                        channelSelect.appendChild(option);
+                    });
+                    
+                    console.log(`Loaded ${channels.length} channels for server ${serverId}`);
+                })
+                .catch(error => {
+                    console.error('Error loading channels:', error);
+                    channelSelect.innerHTML = '<option value="">Error loading channels</option>';
+                });
+        }
+
+        function setTargetChannel() {
+            const channelSelect = document.getElementById('channelSelect');
+            const channelId = channelSelect.value;
+            const selectedOption = channelSelect.options[channelSelect.selectedIndex];
+            
+            if (!channelId) return;
+            
+            fetch('/api/set_target_channel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ channel_id: channelId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentTargetChannel = channelId;
+                    updateCurrentTarget(selectedOption.textContent);
+                    showNotification(`Target channel set to: ${selectedOption.textContent}`);
+                } else {
+                    showNotification('Failed to set target channel');
+                }
+            })
+            .catch(error => {
+                console.error('Error setting target channel:', error);
+                showNotification('Error setting target channel');
+            });
+        }
+
+        function updateCurrentTarget(channelName = null) {
+            const currentTarget = document.getElementById('currentTarget');
+            
+            if (channelName) {
+                currentTarget.textContent = `Target: ${channelName}`;
+                currentTarget.style.background = 'rgba(0, 184, 148, 0.2)';
+            } else {
+                currentTarget.textContent = 'Target: Not set';
+                currentTarget.style.background = 'rgba(255, 118, 117, 0.2)';
+            }
+        }
+
+        function refreshServers() {
+            loadServers();
+            showNotification('Refreshing server list...');
+        }
 
         function updateStatus(status, message) {
             const statusEl = document.getElementById('connectionStatus');
@@ -431,8 +617,8 @@
             
             const stats = currentAnalytics.summary;
             document.getElementById('totalMessages').textContent = stats.total_messages;
-            document.getElementById('webMessages').textContent = currentAnalytics.message_stats.web_messages;
-            document.getElementById('discordMessages').textContent = currentAnalytics.message_stats.discord_messages;
+            document.getElementById('webMessages').textContent = currentAnalytics.message_stats?.web_messages || 0;
+            document.getElementById('discordMessages').textContent = currentAnalytics.message_stats?.discord_messages || 0;
             document.getElementById('uniqueUsers').textContent = stats.unique_users;
             
             // Update top users
@@ -457,8 +643,25 @@
         }
 
         function showNotification(message) {
-            // Simple notification - you can enhance this with a proper notification system
-            console.log('Notification:', message);
+            // Create a temporary notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 184, 148, 0.9);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                z-index: 1000;
+                animation: fadeIn 0.3s ease-in;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 3000);
         }
 
         // Utility functions
@@ -483,10 +686,11 @@
                 });
         }, 5000);
 
-        // Load initial analytics
+        // Load initial analytics and servers
         document.addEventListener('DOMContentLoaded', function() {
             refreshAnalytics();
             updateAutoYapButton();
+            // Servers will load when socket connects
         });
     </script>
 </body>

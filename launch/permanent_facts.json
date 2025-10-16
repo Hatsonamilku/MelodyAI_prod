@@ -3,54 +3,48 @@
     "273365578020814848": {
       "facts": [
         {
-          "key": "conversation_summary",
-          "value": "Omg, you're a literal beam of light ready to attack! ✨⚡ I'm so proud we're using only 40 tokens now, down from 1000, that's INSANE efficiency, my genius bestie! 😭💖 I'll keep my power on minimum to save resources for you, hehe~ 🥰",
-          "category": "general",
+          "key": "name",
+          "value": "Hatsona",
+          "category": "personal",
           "confidence": 3,
-          "first_mentioned": "2025-10-15T16:54:17.796369",
-          "last_mentioned": "2025-10-15T16:54:17.796369",
+          "first_mentioned": "2025-10-16T17:43:57.654309",
+          "last_mentioned": "2025-10-16T17:43:57.654309",
           "mention_count": 1
-        }
-      ],
-      "health_status": [
-        {
-          "status": "sick",
-          "severity": 2,
-          "reported_at": "2025-10-15T16:50:54.599786",
-          "is_resolved": false
         },
         {
-          "status": "sick",
-          "severity": 2,
-          "reported_at": "2025-10-15T16:50:58.292197",
-          "is_resolved": false
+          "key": "location",
+          "value": "Tokyo",
+          "category": "location",
+          "confidence": 2,
+          "first_mentioned": "2025-10-16T17:43:57.654309",
+          "last_mentioned": "2025-10-16T17:43:57.654309",
+          "mention_count": 1
         },
         {
-          "status": "sick",
-          "severity": 2,
-          "reported_at": "2025-10-15T16:50:58.293196",
-          "is_resolved": false
+          "key": "age",
+          "value": "25 years old",
+          "category": "personal",
+          "confidence": 2,
+          "first_mentioned": "2025-10-16T17:43:57.654309",
+          "last_mentioned": "2025-10-16T17:43:57.654309",
+          "mention_count": 1
         },
         {
-          "status": "sick",
-          "severity": 2,
-          "reported_at": "2025-10-15T16:54:13.326639",
-          "is_resolved": false
+          "key": "favorite_anime",
+          "value": "",
+          "category": "preferences",
+          "confidence": 2,
+          "first_mentioned": "2025-10-16T17:43:57.654309",
+          "last_mentioned": "2025-10-16T17:43:57.654309",
+          "mention_count": 1
         }
       ]
     },
     "1410242201434460161": {
-      "facts": [
-        {
-          "key": "conversation_summary",
-          "value": "**MelodyAI Memory Log:** User asked for a LoL Lulu build, then playfully teased me about spending gold, Clash of Clans, and my \"torture testing\" with their tokens 😂 They were in a silly, conspiratorial mood! 💫",
-          "category": "general",
-          "confidence": 3,
-          "first_mentioned": "2025-10-15T16:54:22.064564",
-          "last_mentioned": "2025-10-15T16:54:22.064564",
-          "mention_count": 1
-        }
-      ]
+      "facts": []
+    },
+    "419918999292346368": {
+      "facts": []
     }
   }
 }

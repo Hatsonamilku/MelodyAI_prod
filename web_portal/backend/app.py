@@ -1,4 +1,4 @@
-# app.py - COMPLETELY FIXED VERSION
+# app.py - FIXED CHANNEL LIST VERSION
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO
 import json
@@ -39,7 +39,6 @@ def index():
 def api_status():
     discord_connected = False
     if discord_bridge and hasattr(discord_bridge.bot, 'is_ready'):
-        # FIX: Call the is_ready() method to get boolean
         try:
             discord_connected = discord_bridge.bot.is_ready()
         except:
@@ -51,6 +50,72 @@ def api_status():
         "discord_connected": discord_connected,
         "timestamp": datetime.utcnow().isoformat()
     })
+
+@app.route("/api/servers")
+def api_servers():
+    """Get list of servers Melody is in"""
+    if discord_bridge and discord_bridge.bot.is_ready():
+        servers = []
+        for guild in discord_bridge.bot.guilds:
+            servers.append({
+                'id': str(guild.id),  # Ensure ID is string for JSON
+                'name': guild.name,
+                'icon': str(guild.icon.url) if guild.icon else None,
+                'member_count': guild.member_count
+            })
+        return jsonify(servers)
+    return jsonify([])
+
+@app.route("/api/servers/<int:server_id>/channels")
+def api_server_channels(server_id):
+    """Get text channels for a specific server"""
+    if discord_bridge and discord_bridge.bot.is_ready():
+        guild = discord_bridge.bot.get_guild(server_id)
+        if guild:
+            channels = []
+            for channel in guild.text_channels:
+                # Check if bot has permission to send messages
+                permissions = channel.permissions_for(guild.me)
+                if permissions.send_messages:
+                    channels.append({
+                        'id': str(channel.id),  # Ensure ID is string for JSON
+                        'name': channel.name,
+                        'topic': channel.topic or "",
+                        'position': channel.position
+                    })
+            # Sort by position
+            channels.sort(key=lambda x: x['position'])
+            return jsonify(channels)
+    return jsonify([])
+
+@app.route("/api/set_target_channel", methods=["POST"])
+def api_set_target_channel():
+    """Change the target channel for messages"""
+    data = request.json
+    channel_id = data.get("channel_id")
+    
+    if channel_id and discord_bridge:
+        try:
+            discord_bridge.target_channel_id = int(channel_id)
+            print(f"🎯 TARGET CHANNEL CHANGED: {channel_id}")
+            
+            # Get channel info for display
+            channel = discord_bridge.bot.get_channel(int(channel_id))
+            channel_info = f"#{channel.name}" if channel else "Unknown Channel"
+            
+            # Broadcast to all web clients
+            socketio.emit("target_channel_changed", {
+                "channel_id": channel_id,
+                "channel_name": channel_info,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            return jsonify({"status": "success", "channel_id": channel_id, "channel_name": channel_info})
+        except Exception as e:
+            print(f"❌ Error setting target channel: {e}")
+            return jsonify({"error": str(e)}), 400
+    
+    return jsonify({"error": "Invalid channel ID"}), 400
 
 @app.route("/api/send_message", methods=["POST"])
 def api_send_message():
@@ -142,7 +207,7 @@ def handle_web_command(data):
     print(f"🎮 WEB COMMAND: {command}")
 
 if __name__ == "__main__":
-    print("🚀 STARTING MELODY AI WEB PORTAL WITH ADVANCED FEATURES...")
+    print("🚀 STARTING MELODY AI WEB PORTAL WITH FIXED CHANNEL LIST...")
     
     # Start Discord bridge in background thread
     discord_thread = threading.Thread(target=start_discord_bridge, daemon=True)

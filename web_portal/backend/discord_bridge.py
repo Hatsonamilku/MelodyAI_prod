@@ -1,4 +1,4 @@
-# discord_bridge.py - CURATED LEAGUE TROLL EDITION
+# discord_bridge.py - WITH MULTI-SERVER SUPPORT
 import discord
 from discord.ext import commands
 import asyncio
@@ -22,11 +22,14 @@ class DiscordBridge:
         @self.bot.event
         async def on_ready():
             print(f'✅ DISCORD BRIDGE READY! Logged in as {self.bot.user}')
-            print("🔮 Web portal bridge ready - announcement handled by main bot")
+            print(f'🏠 Connected to {len(self.bot.guilds)} servers:')
+            for guild in self.bot.guilds:
+                print(f'   - {guild.name} ({guild.member_count} members)')
+            print("🔮 Web portal bridge ready - multi-server support active")
         
         @self.bot.event
         async def on_message(message):
-            # Ignore bot messages and web portal messages to prevent loops
+            # Ignore bot messages and only listen to target channel
             if (message.author.bot or 
                 message.channel.id != self.target_channel_id):
                 return
@@ -61,6 +64,12 @@ class DiscordBridge:
         try:
             channel = self.bot.get_channel(self.target_channel_id)
             if channel:
+                # Verify we can send messages to this channel
+                permissions = channel.permissions_for(channel.guild.me)
+                if not permissions.send_messages:
+                    print(f"❌ No permission to send messages in {channel.name}")
+                    return False
+                
                 message_content = message_data['message']
                 
                 # Convert Discord user IDs to proper mentions
@@ -69,8 +78,8 @@ class DiscordBridge:
                 
                 # CURATED LEAGUE OF LEGENDS TROLL NAMES
                 league_troll_names = [
-                    "🐈 Fiddle Me Mommy says:"                    # Pure nightmare fuel
-                                       # Which one is real?!
+                    "😨 Fiddle Me Mommy says:"                    # Pure nightmare fuel
+                                           # Which one is real?!
                 ]
                 
                 # Pick random League troll name
@@ -99,7 +108,7 @@ class DiscordBridge:
         """Start the Discord bot"""
         token = os.getenv('DISCORD_BOT_TOKEN')
         if token:
-            print("🔗 STARTING DISCORD BRIDGE...")
+            print("🔗 STARTING DISCORD BRIDGE WITH MULTI-SERVER SUPPORT...")
             try:
                 await self.bot.start(token)
             except RuntimeError as e:
@@ -119,7 +128,7 @@ def setup_discord_bridge(web_portal_ref):
     global _discord_bridge_instance
     if _discord_bridge_instance is None:
         _discord_bridge_instance = DiscordBridge(web_portal_ref)
-        print("🆕 Created new Discord bridge instance")
+        print("🆕 Created new Discord bridge instance with multi-server support")
     else:
         print("♻️ Using existing Discord bridge instance")
     return _discord_bridge_instance

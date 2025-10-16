@@ -202,6 +202,7 @@ class DiscordMelodyAdapter:
         for msg in messages:
             uid = msg["user_id"]
             summaries.setdefault(uid, "")
+            # FIXED: Use different quotes to avoid f-string parsing issues
             summaries[uid] += f"{msg['message']} "
 
         for uid, full_text in summaries.items():
