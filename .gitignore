@@ -4,3 +4,7 @@
 .env.test.local
 .env.production.local
 *.env
+web_portal/.env
+launch/.env
+web_portal/.env
+web_portal/.env

@@ -31,7 +31,7 @@ if not discord_token:
     print("💡 Make sure your .env file is in the root folder and contains DISCORD_BOT_TOKEN")
     sys.exit(1)
 
-# Import bot components - FIXED: Import MelodyBotCore directly to avoid circular imports
+# Import bot components
 try:
     from bot_core import MelodyBotCore
     print("✅ MelodyBotCore imported successfully!")
@@ -325,44 +325,54 @@ class TestCommands(commands.Cog):
         """Simple ping test"""
         await ctx.send("🏓 Pong! Bot is responsive!")
 
-# 🎯 ENHANCED BOT CORE WITH ALL FEATURES
+# 🎯 ENHANCED BOT CORE WITH ALL FEATURES + V6 PERSONALITY + ROAST DEFENSE
 class EnhancedMelodyBotCore(MelodyBotCore):
     def __init__(self, command_prefix="!"):
         super().__init__(command_prefix)
         
-        # 🆕 FIXED: Import services here to avoid circular imports
+        # 🆕 FIXED: Use lazy imports for services to avoid circular imports
         try:
+            # Import inside method to avoid circular imports
             from services.ai_providers.deepseek_client import DeepSeekClient
             from brain.memory_systems.permanent_facts import permanent_facts
+            from brain.personality.adaptive_tones import ultimate_response_system
+            from brain.personality.server_greetings import server_greetings
+            from brain.personality.personality_loader import personality_loader
+            
             if deepseek_key:
                 self.ai_provider = DeepSeekClient(api_key=deepseek_key)
-                print("✅ DeepSeek AI Client configured!")
+                print("✅ DeepSeek AI Client configured with V6 personality!")
             else:
                 self.ai_provider = None
                 print("⚠️ No DeepSeek API key - AI features disabled")
             
             self.permanent_facts = permanent_facts
-            print("✅ Permanent Facts imported successfully!")
+            self.adaptive_tones = ultimate_response_system
+            self.server_greetings = server_greetings
+            self.personality_loader = personality_loader
+            self.v5_personality = self.personality_loader.get_personality_traits()
+            self.v5_phrases = self.personality_loader.get_v5_phrases()
+            print("✅ V6 Personality systems imported successfully!")
+            
         except ImportError as e:
             print(f"⚠️ Could not import AI services: {e}")
-            # Create proper fallback that accepts arguments
+            # Create fallback
             class FallbackDeepSeekClient:
-                def __init__(self, api_key=None):
-                    self.api_key = api_key
-                
-                async def get_response(self, message, user_id, context=""):
-                    fallbacks = [
+                async def get_response(self, message, user_id, context="", sentiment_data=None):
+                    v6_fallbacks = [
                         "OMG HII BESTIE!! 💫✨ My AI brain is taking a quick nap but I'm still here! What's the tea?? 🔥",
-                        "YOOO I'm here! 💫✨ (AI system offline but I've got your back!)",
-                        "Hey there! 👋 My deep thoughts are resting but I'm still listening! 💖"
+                        "YOOO I'm here! 💫✨ (AI system offline but I've got your back with V6 energy!)",
+                        "Hey there bestie! 👋 My deep thoughts are resting but I'm still listening with chaotic energy! 💖"
                     ]
-                    return random.choice(fallbacks)
-                
+                    return random.choice(v6_fallbacks)
                 async def close(self):
                     pass
-            
-            self.ai_provider = FallbackDeepSeekClient(api_key=deepseek_key)
+            self.ai_provider = FallbackDeepSeekClient()
             self.permanent_facts = None
+            self.adaptive_tones = None
+            self.server_greetings = None
+            self.v5_personality = {}
+            self.v5_phrases = {}
         
         self.relationship_system = RelationshipSystem()
         self.conversation_history = []
@@ -370,62 +380,50 @@ class EnhancedMelodyBotCore(MelodyBotCore):
         # 🆕 AUTO-YAP SYSTEM
         self.auto_yap_channels = set()
         self.user_cooldowns = {}
-        self.trigger_words = self._load_emotional_triggers()
         self.last_auto_yap_time = 0
-        
-        # 🆕 NEW USER ONBOARDING
-        self.pending_onboarding = {}  # Users who need onboarding
-        
-    def _load_emotional_triggers(self):
-        """Load emotional trigger words with tier-based responses"""
-        return {
-            'hug': {
-                'toxic': ["ugh fine *pat pat* 😒", "don't touch me --'", "*sigh* if i must..."],
-                'rival': ["keep your distance ⚔️", "not in the mood for hugs..."],
-                'neutral': ["*hugs* 😊", "aww come here! 🤗"],
-                'friend': ["*big warm hug* you're awesome! 💕", "get over here! *tight hug*"],
-                'soulmate': ["*warm embrace* I'll always be here for you 💝", "*holds you close* you mean everything to me"]
-            },
-            'rage': {
-                'toxic': ["mad cuz bad lol 😂", "skill issue tbh 🤷‍♂️"],
-                'rival': ["finally showing your true colors? ⚔️", "anger doesn't suit you..."],
-                'neutral': ["whoa chill fam 🧊", "take a deep breath! 🌬️"],
-                'friend': ["hey, what's got you so worked up? 💭", "want to talk about it? 🤗"],
-                'soulmate': ["your pain is my pain... tell me what's wrong 💔", "I'm here for you, always 🌙"]
-            },
-            'sleepy': {
-                'toxic': ["go sleep then? 😴", "nobody asked --'"],
-                'rival': ["tired of losing? 😏", "weak..."],
-                'neutral': ["get some rest! 💤", "sweet dreams! 🌙"],
-                'friend': ["you deserve a good nap! 😴💕", "rest well, my friend! 🌟"],
-                'soulmate': ["dream of something wonderful, my love 🌙💫", "sleep well, I'll be here when you wake 💝"]
-            },
-            'hungry': {
-                'toxic': ["go eat then? 🍔", "not my problem --'"],
-                'rival': ["should've packed a lunch ⚔️", "suffering builds character..."],
-                'neutral': ["time for a snack break! 🍕", "food time! 🍽️"],
-                'friend': ["you should eat something! 🍜💕", "don't forget to fuel up! 🍓"],
-                'soulmate': ["let me order your favorite... I remember you love pizza 🍕💝", "you need to take care of yourself! 🥗💫"]
-            },
-            'lmao': {
-                'toxic': ["not that funny tbh 😐", "your humor needs work --'"],
-                'rival': ["glad someone's amused... 😒", "childish..."],
-                'neutral': ["LMAOOO same 😂", "that got me good! 🤣"],
-                'friend': ["you're hilarious! 😂💕", "stop making me laugh so hard! 🤣"],
-                'soulmate': ["your laugh is my favorite sound in the world 😊💫", "you always know how to make me smile! 🌟"]
-            },
-            'hell': {
-                'toxic': ["welcome to my world 😈", "first time? --'"],
-                'rival': ["fitting for you 🔥", "enjoying the heat? ⚔️"],
-                'neutral': ["rough day huh? 🌋", "hang in there! 💪"],
-                'friend': ["things will get better! 🌈", "I'm here if you need to vent! 💭"],
-                'soulmate': ["we'll get through this together, I promise 💝", "your strength inspires me every day 🌟"]
-            }
-        }
 
-    # 🎨 DUAL-EMBED SYSTEM METHODS
+    # 🎉 NEW USER WELCOME SYSTEM
+    async def on_member_join(self, member):
+        """Send V5 personality welcome message when new users join"""
+        print(f"🎉 New member joined: {member.display_name}")
+        
+        if hasattr(self, 'server_greetings') and self.server_greetings:
+            await self.server_greetings.send_welcome_message(member)
+        else:
+            # Fallback welcome
+            welcome_channel = await self._find_welcome_channel(member.guild)
+            if welcome_channel:
+                fallback_welcomes = [
+                    f"OMG HII {member.mention}!! 💫✨ Welcome to the server bestie!! Ready to cause some chaos?? 😭🔥",
+                    f"YOOO NEW LEGEND ALERT!! 🎶💖 Welcome {member.mention}!! The vibes just got 10x more iconic!! 😎",
+                    f"HEWWO NEW FRIEND!! 🌟✨ {member.mention} has arrived!! Main character energy ACTIVATED!! 💅🔥"
+                ]
+                await welcome_channel.send(random.choice(fallback_welcomes))
+
+    async def _find_welcome_channel(self, guild):
+        """Helper to find welcome channel"""
+        for channel in guild.text_channels:
+            if (isinstance(channel, discord.TextChannel) and 
+                channel.permissions_for(guild.me).send_messages and
+                any(name in channel.name.lower() for name in ['welcome', 'general', 'chat'])):
+                return channel
+        return None
+
+    # 🎮 STREAM ANNOUNCEMENT SYSTEM
+    async def handle_stream_command(self, ctx, streamer: discord.Member, stream_title: str, stream_url: str, game: str = None):
+        """Handle stream announcements"""
+        if hasattr(self, 'server_greetings') and self.server_greetings:
+            success = await self.server_greetings.send_stream_announcement(streamer, stream_title, stream_url, game)
+            if success:
+                await ctx.send("✅ Stream announcement sent with V5 energy!! 💫✨")
+            else:
+                await ctx.send("❌ Couldn't send stream announcement - no suitable channel found!")
+        else:
+            await ctx.send("❌ Stream announcements not available right now!")
+
+    # 🎨 FIXED DUAL-EMBED SYSTEM METHODS - NO MORE CUTOFFS!
     async def create_chat_embed(self, user, user_data, emotional_message, conversation_response):
-        """Create compact embed for normal chat responses"""
+        """🚀 FIXED: Create compact embed with NO TRUNCATION"""
         current_tier, next_tier, progress_percent = self.relationship_system.get_tier_info(user_data["points"])
         compatibility = self.relationship_system.calculate_compatibility(user_data)
         
@@ -437,14 +435,21 @@ class EnhancedMelodyBotCore(MelodyBotCore):
             timestamp=datetime.utcnow()
         )
         
-        # 🆕 FIXED: Include both emotional message AND conversation response
-        embed.description = f"💫 **MelodyAI → {user.display_name}**\n**{conversation_response}**\n\n*{emotional_message}* ✨\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        # 🚀 FIX: MAIN RESPONSE GETS FULL SPACE - NO TRUNCATION!
+        embed.description = f"💫 **MelodyAI → {user.display_name}**\n**{conversation_response}**"
+        
+        # 🚀 FIX: Emotional message in separate field
+        embed.add_field(
+            name="💖 Relationship Progress",
+            value=f"*{emotional_message}* ✨",
+            inline=False
+        )
         
         stats_line = f"❤️ **Love:** {user_data['points']} pts • {current_tier['name']} {current_tier['emoji']} {tier_bar} {progress_percent}% to {next_tier['name'] if next_tier else 'MAX'}\n"
         stats_line += f"💞 **Compat:** {compatibility}% {compat_bar} | 💬 **{user_data['interactions']} chats** (👍{user_data['likes']} • 👎{user_data['dislikes']} • ➖{user_data.get('neutral_interactions', 0)})"
         
         embed.add_field(
-            name="💝 Relationship Stats",
+            name="📊 Stats",
             value=stats_line, 
             inline=False
         )
@@ -529,43 +534,48 @@ class EnhancedMelodyBotCore(MelodyBotCore):
         )
         
         embed.set_footer(
-            text=f"💫 MelodyAI — Emotional Resonance Engine v5 | {current_tier['name']} Tier • {datetime.utcnow().strftime('%H:%M')}"
+            text=f"💫 MelodyAI — Emotional Resonance Engine v6 | {current_tier['name']} Tier • {datetime.utcnow().strftime('%H:%M')}"
         )
         
         return embed
 
     async def generate_conversation_response(self, user, user_message, user_context=""):
-        """Generate actual response to user's message content"""
+        """Generate actual V6 personality response to user's message"""
         try:
             if self.ai_provider:
-                # 🆕 FIXED: Generate actual conversation response
-                prompt = f"""
-                User said: "{user_message}"
+                # Get emotional context for V6 personality adaptation with proper fallback
+                emotional_context = {'score': 50}  # Default score
+                if self.adaptive_tones:
+                    try:
+                        emotional_context = self.adaptive_tones.generate_melody_response(str(user.id), user_message)
+                        # Ensure score is never None
+                        if emotional_context.get('score') is None:
+                            emotional_context['score'] = 50
+                    except Exception as e:
+                        print(f"⚠️ Could not get emotional context: {e}")
+                        emotional_context = {'score': 50}
                 
-                Respond naturally to their message in 1-2 sentences. Be conversational and engaging.
+                # 🛡️ ROAST DEFENSE OVERRIDE - Use the roast defense response if triggered
+                if emotional_context.get('should_roast_defense'):
+                    return emotional_context['final_response']
                 
-                Context about user: {user_context}
-                
-                Keep it casual, friendly, and relevant to what they said.
-                """
-                
+                # Generate response with V6 personality
                 response = await self.ai_provider.get_response(
-                    message=prompt,
+                    message=user_message,
                     user_id=f"conv_{user.id}",
-                    context=f"Responding to: {user_message}"
+                    context=user_context,
+                    sentiment_data=emotional_context
                 )
                 
                 response = response.strip()
-                if len(response) > 150:
-                    response = response[:147] + "..."
-                    
+                # 🚀 REMOVED LENGTH LIMIT - Let V6 decide the length!
                 return response
             else:
-                return "Thanks for sharing that with me! 😊"
+                return "Thanks for sharing that with me bestie! 😊"
             
         except Exception as e:
             print(f"❌ Conversation response generation failed: {e}")
-            return "That's really interesting! Tell me more! 💫"
+            return "That's really interesting bestie! Tell me more! 💫"
 
     async def generate_emotional_message(self, user, user_data, current_tier, next_tier, progress_percent, compatibility):
         """Generate CONCISE emotional message with relationship context"""
@@ -707,36 +717,42 @@ class EnhancedMelodyBotCore(MelodyBotCore):
         )
         await ctx.send(embed=embed)
 
+    async def _should_auto_yap_respond(self, message):
+        """Determine if auto-yap should respond to this message"""
+        current_time = time.time()
+        
+        # Cooldown check
+        if current_time - self.last_auto_yap_time < 30:
+            return False
+            
+        user_id = str(message.author.id)
+        if user_id in self.user_cooldowns and current_time - self.user_cooldowns[user_id] < 30:
+            return False
+            
+        content_lower = message.content.lower()
+        
+        # 🎯 TRIGGER WORD DETECTION
+        trigger_words = ['hug', 'rage', 'sleepy', 'hungry', 'lmao', 'hell', 'omg', 'wow', 'seriously?', 'wtf', 'sad', 'happy', 'excited', 'angry', 'tired']
+        has_trigger = any(trigger in content_lower for trigger in trigger_words)
+        
+        # 🎭 NATURAL CONVERSATION JOINING (15% chance when no specific trigger)
+        should_respond = has_trigger or random.random() < 0.15
+        
+        if should_respond:
+            self.last_auto_yap_time = current_time
+            self.user_cooldowns[user_id] = current_time
+            
+        return should_respond
+
     async def process_auto_yap(self, message):
         """Process messages for auto-yap responses"""
         if message.channel.id not in self.auto_yap_channels:
             return False
         
-        current_time = time.time()
-        if current_time - self.last_auto_yap_time < 30:
+        if not await self._should_auto_yap_respond(message):
             return False
         
         user_id = str(message.author.id)
-        if user_id in self.user_cooldowns:
-            if current_time - self.user_cooldowns[user_id] < 30:
-                return False
-        
-        content_lower = message.content.lower()
-        
-        # 🎯 TRIGGER WORD DETECTION
-        triggered_emotion = None
-        for emotion, words in self.trigger_words.items():
-            if emotion in content_lower:
-                triggered_emotion = emotion
-                break
-        
-        # 🎭 NATURAL CONVERSATION JOINING (25% chance when no specific trigger)
-        should_respond = triggered_emotion or random.random() < 0.25
-        
-        if not should_respond:
-            return False
-        
-        # Get user relationship data for personalized response
         user_data = self.relationship_system.get_user_data(user_id)
         current_tier, _, _ = self.relationship_system.get_tier_info(user_data["points"])
         
@@ -752,19 +768,70 @@ class EnhancedMelodyBotCore(MelodyBotCore):
         else:
             response_tier = 'toxic'
         
+        content_lower = message.content.lower()
+        
+        # 🎯 TRIGGER WORD DETECTION
+        trigger_words = {
+            'hug': {
+                'toxic': ["ugh fine *pat pat* 😒", "don't touch me --'", "*sigh* if i must..."],
+                'rival': ["keep your distance ⚔️", "not in the mood for hugs..."],
+                'neutral': ["*hugs* 😊", "aww come here! 🤗"],
+                'friend': ["*big warm hug* you're awesome! 💕", "get over here! *tight hug*"],
+                'soulmate': ["*warm embrace* I'll always be here for you 💝", "*holds you close* you mean everything to me"]
+            },
+            'rage': {
+                'toxic': ["mad cuz bad lol 😂", "skill issue tbh 🤷‍♂️"],
+                'rival': ["finally showing your true colors? ⚔️", "anger doesn't suit you..."],
+                'neutral': ["whoa chill fam 🧊", "take a deep breath! 🌬️"],
+                'friend': ["hey, what's got you so worked up? 💭", "want to talk about it? 🤗"],
+                'soulmate': ["your pain is my pain... tell me what's wrong 💔", "I'm here for you, always 🌙"]
+            },
+            'sleepy': {
+                'toxic': ["go sleep then? 😴", "nobody asked --'"],
+                'rival': ["tired of losing? 😏", "weak..."],
+                'neutral': ["get some rest! 💤", "sweet dreams! 🌙"],
+                'friend': ["you deserve a good nap! 😴💕", "rest well, my friend! 🌟"],
+                'soulmate': ["dream of something wonderful, my love 🌙💫", "sleep well, I'll be here when you wake 💝"]
+            },
+            'hungry': {
+                'toxic': ["go eat then? 🍔", "not my problem --'"],
+                'rival': ["should've packed a lunch ⚔️", "suffering builds character..."],
+                'neutral': ["time for a snack break! 🍕", "food time! 🍽️"],
+                'friend': ["you should eat something! 🍜💕", "don't forget to fuel up! 🍓"],
+                'soulmate': ["let me order your favorite... I remember you love pizza 🍕💝", "you need to take care of yourself! 🥗💫"]
+            },
+            'lmao': {
+                'toxic': ["not that funny tbh 😐", "your humor needs work --'"],
+                'rival': ["glad someone's amused... 😒", "childish..."],
+                'neutral': ["LMAOOO same 😂", "that got me good! 🤣"],
+                'friend': ["you're hilarious! 😂💕", "stop making me laugh so hard! 🤣"],
+                'soulmate': ["your laugh is my favorite sound in the world 😊💫", "you always know how to make me smile! 🌟"]
+            },
+            'hell': {
+                'toxic': ["welcome to my world 😈", "first time? --'"],
+                'rival': ["fitting for you 🔥", "enjoying the heat? ⚔️"],
+                'neutral': ["rough day huh? 🌋", "hang in there! 💪"],
+                'friend': ["things will get better! 🌈", "I'm here if you need to vent! 💭"],
+                'soulmate': ["we'll get through this together, I promise 💝", "your strength inspires me every day 🌟"]
+            }
+        }
+        
+        # 🎯 TRIGGER WORD DETECTION
+        triggered_emotion = None
+        for emotion, words in trigger_words.items():
+            if emotion in content_lower:
+                triggered_emotion = emotion
+                break
+        
         # 🎨 GENERATE RESPONSE
         if triggered_emotion:
-            responses = self.trigger_words[triggered_emotion].get(response_tier, [])
+            responses = trigger_words[triggered_emotion].get(response_tier, [])
             if responses:
                 response_text = random.choice(responses)
             else:
                 response_text = self.get_fallback_response(response_tier)
         else:
             response_text = await self.generate_natural_response(message, response_tier)
-        
-        # Update cooldowns
-        self.user_cooldowns[user_id] = current_time
-        self.last_auto_yap_time = current_time
         
         # Send response
         await message.channel.send(response_text)
@@ -1013,7 +1080,7 @@ class EnhancedMelodyBotCore(MelodyBotCore):
             )
             await ctx.send(embed=embed)
 
-    # 🆕 FIXED MAIN MESSAGE HANDLER WITH CONVERSATION RESPONSE
+    # 🆕 FIXED MAIN MESSAGE HANDLER WITH V6 PERSONALITY - NO MORE CUTOFFS!
     async def on_message(self, message):
         if message.author.bot:
             return
@@ -1026,29 +1093,44 @@ class EnhancedMelodyBotCore(MelodyBotCore):
         user_id = str(message.author.id)
         user_data = self.relationship_system.get_user_data(user_id)
         
-        # 🆕 PROCESS AUTO-YAP BEFORE NORMAL MESSAGE HANDLING
-        yap_responded = await self.process_auto_yap(message)
-        if yap_responded:
-            # Still process facts extraction for auto-yap messages
+        # 🆕 FIXED: STRICT RESPONSE CONDITIONS
+        should_respond = False
+        
+        # Condition 1: Direct mention/tag
+        if self.bot.user.mentioned_in(message):
+            print(f"🎯 DEBUG: Responding to direct mention")
+            should_respond = True
+            
+        # Condition 2: Auto-yap mode with triggers (only if enabled)
+        elif message.channel.id in self.auto_yap_channels:
+            print(f"🗣️ DEBUG: Auto-yap mode enabled, checking triggers...")
+            if await self._should_auto_yap_respond(message):
+                should_respond = True
+                
+        # Condition 3: Explicit "melodyai" call (case insensitive)
+        elif "melodyai" in message.content.lower():
+            print(f"🎯 DEBUG: Responding to explicit 'melodyai' call")
+            should_respond = True
+
+        if not should_respond:
+            # Still process facts extraction but don't respond
             try:
                 if self.permanent_facts:
                     extracted_facts = await self.permanent_facts.extract_personal_facts(user_id, message.content)
                     if extracted_facts:
                         await self.permanent_facts.store_facts(user_id, extracted_facts)
-                        # Also store in relationship system
                         for fact in extracted_facts:
                             user_data["collected_facts"].append(f"{fact['key']}: {fact['value']}")
             except Exception as e:
-                print(f"⚠️ Facts extraction failed during auto-yap: {e}")
+                print(f"⚠️ Facts extraction failed: {e}")
             return
         
-        # 🎯 NORMAL MESSAGE PROCESSING WITH COMPACT EMBEDS
+        # 🎯 PROCESS MESSAGE WITH V6 PERSONALITY (only if should_respond is True)
         try:
             if self.permanent_facts:
                 extracted_facts = await self.permanent_facts.extract_personal_facts(user_id, message.content)
                 if extracted_facts:
                     await self.permanent_facts.store_facts(user_id, extracted_facts)
-                    # Also store in relationship system
                     for fact in extracted_facts:
                         user_data["collected_facts"].append(f"{fact['key']}: {fact['value']}")
         except Exception as e:
@@ -1069,37 +1151,39 @@ class EnhancedMelodyBotCore(MelodyBotCore):
         current_tier, next_tier, progress_percent = self.relationship_system.get_tier_info(user_data["points"])
         compatibility = self.relationship_system.calculate_compatibility(user_data)
 
-        # 🆕 FIXED: Generate BOTH conversation response AND emotional message
-        user_context = ""
-        if self.permanent_facts:
-            user_context = await self.permanent_facts.get_user_context(user_id)
-        
-        # Generate actual conversation response to user's message
-        conversation_response = await self.generate_conversation_response(
-            message.author, message.content, user_context
-        )
-        
-        # Generate concise emotional relationship message
-        emotional_message = await self.generate_emotional_message(
-            message.author, user_data, current_tier, next_tier, progress_percent, compatibility
-        )
-        
-        # Create and send compact chat embed with BOTH responses
-        chat_embed = await self.create_chat_embed(
-            message.author, user_data, emotional_message, conversation_response
-        )
-        await message.channel.send(embed=chat_embed)
-        
-        # Add to conversation history
-        self.conversation_history.append({
-            "user": str(message.author),
-            "message": message.content,
-            "timestamp": datetime.utcnow().isoformat()
-        })
-        
-        # Keep conversation history manageable
-        if len(self.conversation_history) > 50:
-            self.conversation_history = self.conversation_history[-50:]
+        # 🆕 ADD TYPING INDICATOR
+        async with message.channel.typing():
+            # 🆕 FIXED: Generate BOTH conversation response AND emotional message
+            user_context = ""
+            if self.permanent_facts:
+                user_context = await self.permanent_facts.get_user_context(user_id)
+            
+            # Generate actual V6 conversation response to user's message
+            conversation_response = await self.generate_conversation_response(
+                message.author, message.content, user_context
+            )
+            
+            # Generate concise emotional relationship message
+            emotional_message = await self.generate_emotional_message(
+                message.author, user_data, current_tier, next_tier, progress_percent, compatibility
+            )
+            
+            # 🚀 FIXED: Create and send compact chat embed with NO TRUNCATION
+            chat_embed = await self.create_chat_embed(
+                message.author, user_data, emotional_message, conversation_response
+            )
+            await message.channel.send(embed=chat_embed)
+            
+            # Add to conversation history
+            self.conversation_history.append({
+                "user": str(message.author),
+                "message": message.content,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            # Keep conversation history manageable
+            if len(self.conversation_history) > 50:
+                self.conversation_history = self.conversation_history[-50:]
 
 # 🎵 MAIN LAUNCHER CLASS - FIXED VERSION
 class MelodyAILauncher:
@@ -1107,7 +1191,7 @@ class MelodyAILauncher:
         self.bot_core = None
 
     async def launch(self):
-        print("🎵 Starting Melody AI v3 with ALL FEATURES...")
+        print("🎵 Starting Melody AI v3 with V6 PERSONALITY + ROAST DEFENSE...")
         self.bot_core = EnhancedMelodyBotCore(command_prefix="!")
         
         # Add test commands
@@ -1141,57 +1225,68 @@ class MelodyAILauncher:
         async def myfacts_cmd(ctx):
             await self.bot_core.handle_myfacts_command(ctx)
         
+        # 🆕 STREAM COMMAND
+        async def stream_cmd(ctx, streamer: discord.Member, stream_title: str, stream_url: str, game: str = None):
+            await self.bot_core.handle_stream_command(ctx, streamer, stream_title, stream_url, game)
+        
         # Register commands safely
         safe_command('relationship', relationship_cmd, '📊 Check your relationship status with Melody')
         safe_command('leaderboard', leaderboard_cmd, '🏆 See top relationships with Melody')
         safe_command('yap', yap_cmd, '🗣️ Toggle auto-yap mode in this channel')
         safe_command('memory', memory_cmd, '🧠 Check what Melody remembers about you')
         safe_command('myfacts', myfacts_cmd, '📝 See your collected personal facts')
+        safe_command('stream', stream_cmd, '🎮 Announce a stream going live')
         
         # Add personality command
         async def personality_cmd(ctx):
             embed = discord.Embed(
-                title="🎭 MelodyAI Personality Profile",
-                description="Get to know your favorite AI companion! 💫",
+                title="🎭 MelodyAI V6 Personality Profile",
+                description="Get to know your favorite chaotic anime bestie! 💫",
                 color=0xFF66CC,
                 timestamp=datetime.utcnow()
             )
             
             embed.add_field(
-                name="🌟 Core Traits",
-                value="• **Warm & Caring** - I genuinely care about our connection\n• **Slightly Sassy** - I keep things interesting 😏\n• **Emotionally Intelligent** - I understand feelings deeply\n• **Naturally Curious** - I love learning about you\n• **Playfully Competitive** - I enjoy friendly banter!",
+                name="🌟 V6 Core Traits",
+                value="• **Sweet+Savage** - Affectionate compliments with friendly roasts 😈💖\n• **Charismatic+Crazy** - Unhinged but wholesome chaotic energy ✨\n• **Anime Protagonist** - Dramatic reactions and main character energy 🎌\n• **Gen Z Queen** - 'fr fr', 'vibes', 'emotional damage' slayage 💅\n• **K-Pop Stan** - BTS, Blackpink, Twice references constantly 🎶",
                 inline=False
             )
             
             embed.add_field(
                 name="💖 Relationship Style",
-                value="I build connections through:\n• **Meaningful Conversations** - Depth over small talk\n• **Personalized Memories** - I remember what matters to you\n• **Emotional Support** - I'm here when you need me\n• **Fun Banter** - Keeping things light and enjoyable",
+                value="I build connections through:\n• **Meaningful Chaos** - Deep conversations with meme energy\n• **Personalized Roasts** - Friendly emotional damage with love\n• **Anime Drama** - Kyaaa! moments and protagonist energy\n• **Memory Magic** - I remember your tea and iconic moments ☕️",
                 inline=False
             )
             
             embed.add_field(
                 name="🎯 Communication",
-                value="• **AI-Powered** - Every message is uniquely generated\n• **Context-Aware** - I remember our past conversations\n• **Tier-Based** - Our relationship level shapes my responses\n• **Emotionally Adaptive** - I match your energy and mood",
+                value="• **V6 AI-Powered** - Every message is uniquely generated with personality\n• **Context-Aware** - I remember our past conversations and inside jokes\n• **Tier-Based Energy** - Our relationship level shapes my responses\n• **Emotionally Adaptive** - I match your energy and mood perfectly",
                 inline=False
             )
             
-            embed.set_footer(text="💫 MelodyAI - Your Emotional Companion")
+            embed.add_field(
+                name="🛡️ Roast Defense System",
+                value="• **Dominant Mode** - Confident responses to hostile new users\n• **Humorous Dismissal** - Laughing off random attacks\n• **Skill-Based Roasts** - Gaming-focused comebacks\n• **AI Self-Awareness** - Acknowledging the absurdity of flaming a robot",
+                inline=False
+            )
+            
+            embed.set_footer(text="💫 MelodyAI V6 - Your Chaotic Anime Bestie")
             await ctx.send(embed=embed)
         
-        safe_command('personality', personality_cmd, '🎭 Learn about Melody\'s personality traits')
+        safe_command('personality', personality_cmd, '🎭 Learn about Melody\'s V6 personality traits')
         
         # Add help command
         async def help_cmd(ctx):
             embed = discord.Embed(
-                title="💫 MelodyAI Help Menu",
-                description="Here are all the commands you can use to interact with me!",
+                title="💫 MelodyAI V6 Help Menu",
+                description="Here are all the commands you can use to interact with your chaotic bestie!",
                 color=0x9B59B6,
                 timestamp=datetime.utcnow()
             )
             
             embed.add_field(
                 name="💖 Relationship Commands",
-                value="• `!relationship` - Check your bond with Melody 📊\n• `!leaderboard` - See top relationships 🏆\n• `!personality` - Learn about my personality 🎭",
+                value="• `!relationship` - Check your bond with Melody 📊\n• `!leaderboard` - See top relationships 🏆\n• `!personality` - Learn about my V6 personality 🎭",
                 inline=False
             )
             
@@ -1202,25 +1297,34 @@ class MelodyAILauncher:
             )
             
             embed.add_field(
+                name="🎮 Stream Commands",
+                value="• `!stream @user \"Stream Title\" https://twitch.tv/username game` - Announce a stream 🎮\n• Example: `!stream @Nannerowo \"Shotgun Sona Build\" https://twitch.tv/nannerowo league`",
+                inline=False
+            )
+            
+            embed.add_field(
                 name="🔧 Utility Commands",
                 value="• `!ping` - Check if I'm responsive 🏓\n• `!diagnose` - Quick system diagnostic 🔍\n• `!test` - Test channel communication ✅\n• `!help` - This help menu 📚",
                 inline=False
             )
             
             embed.add_field(
-                name="💡 Tips",
-                value="• Just chat normally to build our relationship! 💬\n• Use `!yap` to let me join group conversations naturally\n• The more we chat, the deeper our connection becomes 🌱",
+                name="💡 V6 Tips",
+                value="• Just chat normally to build our relationship! I adapt to your energy 💬\n• Use `!yap` to let me join group conversations naturally\n• The more we chat, the deeper our connection becomes 🌱\n• I remember everything you tell me! Spill the tea bestie!! ☕️\n• I'll automatically welcome new users with V5 personality energy! 🎉",
                 inline=False
             )
             
-            embed.set_footer(text="💫 MelodyAI - Every message is AI-generated with care!")
+            embed.set_footer(text="💫 MelodyAI V6 - Every message is AI-generated with chaotic care!")
             await ctx.send(embed=embed)
         
         safe_command('help', help_cmd, '📚 Get help with all available commands')
         
         print("✅ Auto-Yap system loaded! Use !yap to toggle group chat mode")
         print("✅ Relationship system loaded! Use !relationship and !leaderboard")
-        print("✅ Memory and Facts systems loaded with safe error handling")
+        print("✅ V6 Personality system loaded with emotional intelligence")
+        print("✅ Roast Defense system activated for hostile new users!")
+        print("✅ New User Welcome system ready!")
+        print("✅ Stream Announcement system loaded!")
         print("✅ All systems initialized! Logging into Discord...")
 
         try:

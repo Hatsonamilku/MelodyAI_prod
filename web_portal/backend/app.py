@@ -13,6 +13,9 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "melody_web_portal_secret_2024"
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
+# Global Auto-Yap state
+auto_yap_global_state = False
+
 class WebPortal:
     def __init__(self):
         self.connected_clients = 0
@@ -23,7 +26,7 @@ class WebPortal:
     
     def broadcast_analytics(self):
         """Broadcast updated analytics to all clients"""
-        analytics_data = analytics.get_analytics()  # Uses backward compatible method
+        analytics_data = analytics.get_analytics()
         socketio.emit("analytics_update", analytics_data)
 
 web_portal = WebPortal()
@@ -59,38 +62,66 @@ def api_status():
 
 @app.route("/api/servers")
 def api_servers():
-    """Get list of servers Melody is in"""
-    if discord_bridge and discord_bridge.bot.is_ready():
-        servers = []
-        for guild in discord_bridge.bot.guilds:
-            servers.append({
-                'id': str(guild.id),
-                'name': guild.name,
-                'icon': str(guild.icon.url) if guild.icon else None,
-                'member_count': guild.member_count
-            })
-        return jsonify(servers)
-    return jsonify([])
+    """Get list of servers Melody is in - FIXED VERSION"""
+    try:
+        if discord_bridge and discord_bridge.bot.is_ready():
+            servers = []
+            for guild in discord_bridge.bot.guilds:
+                # Check if bot has basic permissions in this server
+                if guild.me.guild_permissions.view_channel:
+                    servers.append({
+                        'id': str(guild.id),
+                        'name': guild.name,
+                        'icon': str(guild.icon.url) if guild.icon else None,
+                        'member_count': guild.member_count,
+                        'bot_has_access': True
+                    })
+            print(f"📊 Loaded {len(servers)} servers with bot access")
+            return jsonify(servers)
+        else:
+            print("❌ Discord bot not ready")
+            return jsonify([])
+    except Exception as e:
+        print(f"❌ Error loading servers: {e}")
+        return jsonify({"error": str(e)}), 500
 
-@app.route("/api/servers/<int:server_id>/channels")
+@app.route("/api/servers/<server_id>/channels")
 def api_server_channels(server_id):
-    """Get text channels for a specific server"""
-    if discord_bridge and discord_bridge.bot.is_ready():
-        guild = discord_bridge.bot.get_guild(server_id)
-        if guild:
+    """Get text channels for a specific server - FIXED VERSION"""
+    try:
+        if discord_bridge and discord_bridge.bot.is_ready():
+            # Convert to int, handle errors
+            try:
+                guild_id = int(server_id)
+            except ValueError:
+                return jsonify({"error": "Invalid server ID"}), 400
+            
+            guild = discord_bridge.bot.get_guild(guild_id)
+            if not guild:
+                return jsonify({"error": "Server not found"}), 404
+            
             channels = []
             for channel in guild.text_channels:
+                # Check if bot can send messages and view channel
                 permissions = channel.permissions_for(guild.me)
-                if permissions.send_messages:
+                if permissions.view_channel and permissions.send_messages:
                     channels.append({
                         'id': str(channel.id),
                         'name': channel.name,
                         'topic': channel.topic or "",
-                        'position': channel.position
+                        'position': channel.position,
+                        'bot_can_send': True
                     })
+            
+            # Sort by position
             channels.sort(key=lambda x: x['position'])
+            print(f"📁 Loaded {len(channels)} channels for server {guild.name}")
             return jsonify(channels)
-    return jsonify([])
+        else:
+            return jsonify({"error": "Discord bot not ready"}), 400
+    except Exception as e:
+        print(f"❌ Error loading channels: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/set_target_channel", methods=["POST"])
 def api_set_target_channel():
@@ -155,37 +186,36 @@ def api_send_message():
 
 @app.route("/api/toggle_auto_yap", methods=["POST"])
 def api_toggle_auto_yap():
-    """Toggle Auto-Yap mode from web"""
+    """Toggle Auto-Yap mode from web - WORKING VERSION"""
+    global auto_yap_global_state
     data = request.json
     enable = data.get("enable", False)
     
-    if discord_bridge and hasattr(discord_bridge.bot, 'is_ready') and discord_bridge.bot.is_ready():
-        try:
-            enhanced_core = discord_bridge.bot.get_cog('EnhancedMelodyBotCore')
-            if enhanced_core:
-                channel_id = discord_bridge.target_channel_id
-                if enable:
-                    enhanced_core.auto_yap_channels.add(channel_id)
-                    status = "enabled ✅"
-                else:
-                    enhanced_core.auto_yap_channels.discard(channel_id)
-                    status = "disabled ❌"
-                
-                print(f"🔄 Auto-Yap {status} via web portal")
-                
-                socketio.emit("auto_yap_status", {"enabled": enable, "status": status})
-                
-                return jsonify({"status": "success", "auto_yap": enable})
-        except Exception as e:
-            print(f"❌ Failed to toggle Auto-Yap: {e}")
-            return jsonify({"error": str(e)}), 500
+    # Update global state
+    auto_yap_global_state = enable
     
-    return jsonify({"error": "Discord bridge not ready"}), 400
+    if enable:
+        status = "enabled ✅"
+        print("✅ Auto-Yap enabled via web portal")
+    else:
+        status = "disabled ❌"
+        print("❌ Auto-Yap disabled via web portal")
+    
+    # Broadcast status to all web clients
+    socketio.emit("auto_yap_status", {"enabled": enable, "status": status})
+    
+    return jsonify({"status": "success", "auto_yap": enable})
+
+@app.route("/api/auto_yap_status")
+def api_auto_yap_status():
+    """Get current Auto-Yap status"""
+    global auto_yap_global_state
+    return jsonify({"enabled": auto_yap_global_state})
 
 @app.route("/api/analytics")
 def api_analytics():
     """Get analytics data"""
-    return jsonify(analytics.get_analytics())  # Uses backward compatible method
+    return jsonify(analytics.get_analytics())
 
 # ENHANCED API ROUTES
 @app.route("/api/enhanced_analytics")
@@ -241,8 +271,12 @@ def handle_connect():
     print(f"🌐 CLIENT CONNECTED. Total: {web_portal.connected_clients}")
     socketio.emit("message_history", web_portal.message_history[-50:])
     
-    # Send initial analytics - uses backward compatible method
+    # Send initial analytics
     socketio.emit("analytics_update", analytics.get_analytics())
+    
+    # Send initial Auto-Yap status
+    global auto_yap_global_state
+    socketio.emit("auto_yap_status", {"enabled": auto_yap_global_state, "status": "enabled ✅" if auto_yap_global_state else "disabled ❌"})
 
 @socketio.on("disconnect")
 def handle_disconnect():
@@ -275,7 +309,7 @@ def handle_cloud_insight(data):
     })
 
 if __name__ == "__main__":
-    print("🚀 STARTING MELODY AI WEB PORTAL - ENHANCED VERSION...")
+    print("🚀 STARTING MELODY AI WEB PORTAL...")
     
     # Start Discord bridge in background thread
     discord_thread = threading.Thread(target=start_discord_bridge, daemon=True)

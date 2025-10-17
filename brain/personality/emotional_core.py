@@ -1,8 +1,8 @@
 # ==========================================================
 # 🧠 melody_ai_v2/brain/personality/emotional_core.py
 # ----------------------------------------------------------
-# MelodyAI Emotional Core v2.5 Final
-# Semantic + Predictable Extremes + Gen Alpha slang + Reduced Smoothing
+# MelodyAI Emotional Core v3.0 - WITH ROAST DEFENSE MECHANISM
+# Semantic + Predictable Extremes + Gen Alpha slang + Reduced Smoothing + Roast Defense
 # ==========================================================
 
 import re
@@ -10,7 +10,7 @@ import statistics
 from typing import Dict, List, Tuple
 
 class EmotionalCore:
-    """Advanced emotional reasoning system for MelodyAI v2.5 final."""
+    """Advanced emotional reasoning system for MelodyAI v3.0 with roast defense."""
     
     def __init__(self):
         # ----------------------------
@@ -53,6 +53,12 @@ class EmotionalCore:
         self.negations = {'not', "don't", "didn't", 'never', 'no', 'hardly', 'rarely', "can't"}
         self.sarcasm_clues = {'yeah right', 'sure jan', 'as if', 'totally', 'uh huh', 'whatever', 'ok buddy', 'lmao sure'}
         
+        # 🎯 ROAST DEFENSE TRIGGERS
+        self.personal_attacks = {
+            'fake', 'worst', 'suck', 'trash', 'garbage', 'useless', 'stupid', 'ugly', 'dumb', 'shit', 'bitch',
+            'annoying', 'cringe', 'lame', 'pathetic', 'worthless', 'terrible', 'awful', 'horrible', 'disgusting'
+        }
+        
         # ----------------------------
         # 🧠 MEMORY SYSTEM
         # ----------------------------
@@ -61,6 +67,7 @@ class EmotionalCore:
         self.user_trust_scores: Dict[str, float] = {}
         self.user_interaction_count: Dict[str, int] = {}
         self.user_mood_baseline: Dict[str, int] = {}
+        self.user_attack_history: Dict[str, List[str]] = {}  # Track repeated attacks
         
         # 🧮 Precompiled patterns for speed
         self.word_splitter = re.compile(r'\b\w+\b')
@@ -166,29 +173,87 @@ class EmotionalCore:
         return trust_score
 
     # ==========================================================
-    # 🧃 SOCIAL INTELLIGENCE
+    # 🧃 SOCIAL INTELLIGENCE - ENHANCED ROAST DEFENSE
     # ==========================================================
     def is_friendly_banter(self, user_id: str, raw_score: int, message: str) -> bool:
         trust = self.calculate_trust_score(user_id)
-        playful_words = {'game', 'music', 'playlist', 'fortnite', 'suck at', 'bad at', 'terrible', 'noob'}
+        playful_words = {'game', 'music', 'playlist', 'fortnite', 'suck at', 'bad at', 'terrible', 'noob', 'lol', 'lmao', 'xd'}
         return trust > 80 and -15 <= raw_score <= -5 and any(w in message.lower() for w in playful_words)
 
     def should_activate_roast_defense(self, user_id: str, raw_score: int, message: str) -> bool:
+        """Enhanced roast defense with attack severity detection"""
         trust = self.calculate_trust_score(user_id)
         interactions = self.user_interaction_count.get(user_id, 0)
-        personal_attacks = {'fake', 'worst', 'suck', 'trash', 'garbage', 'useless', 'stupid', 'ugly'}
-        is_attack = any(p in message.lower() for p in personal_attacks)
         
-        return (trust < 30 or interactions < 3) and raw_score <= -8 and is_attack and not self.is_friendly_banter(user_id, raw_score, message)
+        # Detect personal attacks
+        is_attack = any(p in message.lower() for p in self.personal_attacks)
+        attack_severity = self._calculate_attack_severity(message)
+        
+        # Track attack history
+        if is_attack:
+            self.user_attack_history.setdefault(user_id, []).append(message)
+            if len(self.user_attack_history[user_id]) > 5:
+                self.user_attack_history[user_id] = self.user_attack_history[user_id][-5:]
+        
+        # 🎯 ROAST DEFENSE CONDITIONS:
+        # 1. New user (low interactions) OR low trust
+        # 2. Highly negative sentiment
+        # 3. Contains personal attacks
+        # 4. Not friendly banter
+        return ((trust < 30 or interactions < 3) and 
+                raw_score <= -8 and 
+                is_attack and 
+                attack_severity >= 2 and
+                not self.is_friendly_banter(user_id, raw_score, message))
+
+    def _calculate_attack_severity(self, message: str) -> int:
+        """Calculate how severe the personal attack is"""
+        severity = 0
+        message_lower = message.lower()
+        
+        # Mild attacks (1 point)
+        mild_attacks = {'bad', 'suck', 'lame', 'cringe', 'annoying'}
+        if any(attack in message_lower for attack in mild_attacks):
+            severity += 1
+            
+        # Medium attacks (2 points)
+        medium_attacks = {'trash', 'garbage', 'stupid', 'dumb', 'useless', 'worst'}
+        if any(attack in message_lower for attack in medium_attacks):
+            severity += 2
+            
+        # Severe attacks (3 points)
+        severe_attacks = {'fake', 'pathetic', 'worthless', 'disgusting', 'ugly', 'shit', 'bitch'}
+        if any(attack in message_lower for attack in severe_attacks):
+            severity += 3
+            
+        return severity
+
+    def get_roast_defense_level(self, user_id: str, message: str) -> str:
+        """Determine appropriate roast defense level"""
+        trust = self.calculate_trust_score(user_id)
+        interactions = self.user_interaction_count.get(user_id, 0)
+        attack_history = self.user_attack_history.get(user_id, [])
+        attack_severity = self._calculate_attack_severity(message)
+        
+        # 🎯 DEFENSE LEVELS:
+        if len(attack_history) >= 3:  # Repeat offender
+            return "DOMINANT"
+        elif attack_severity >= 3:  # Severe attack
+            return "AGGRESSIVE" 
+        elif trust < 15 or interactions == 1:  # Brand new hostile user
+            return "HUMOROUS_DISMISSAL"
+        else:  # Mild attack from low-trust user
+            return "SKILL_ROAST"
 
     # ==========================================================
-    # 🧠 EMOTIONAL CONTEXT BUILDER (FINAL v2.5)
+    # 🧠 EMOTIONAL CONTEXT BUILDER (v3.0 WITH ROAST DEFENSE)
     # ==========================================================
     def get_emotional_context(self, user_id: str, current_message: str) -> Dict:
         sentiment, raw_score = self.analyze_sentiment(current_message)
         trust = self.calculate_trust_score(user_id)
         is_banter = self.is_friendly_banter(user_id, raw_score, current_message)
         roast_defense = self.should_activate_roast_defense(user_id, raw_score, current_message)
+        roast_defense_level = self.get_roast_defense_level(user_id, current_message) if roast_defense else None
         
         adjusted_raw = raw_score * (0.5 if is_banter else 1.0)
         
@@ -218,8 +283,10 @@ class EmotionalCore:
         self.store_sentiment(user_id, final_score)
         
         extremes_info = f" | EXTREMES={extremes_triggered}" if extremes_triggered else ""
+        roast_info = f" | ROAST_DEFENSE={roast_defense_level}" if roast_defense else ""
+        
         print(f"🎭 Emotional Debug | User={user_id} | Raw={raw_score} | Final={final_score} | "
-              f"Trust={trust:.1f} | Banter={is_banter} | Defense={roast_defense}{extremes_info}")
+              f"Trust={trust:.1f} | Banter={is_banter} | Defense={roast_defense}{roast_info}{extremes_info}")
         
         return {
             'sentiment': sentiment,
@@ -231,8 +298,10 @@ class EmotionalCore:
             'trust_score': trust,
             'is_friendly_banter': is_banter,
             'should_roast_defense': roast_defense,
+            'roast_defense_level': roast_defense_level,
             'interaction_count': self.user_interaction_count.get(user_id, 0),
-            'extremes_triggered': extremes_triggered
+            'extremes_triggered': extremes_triggered,
+            'attack_severity': self._calculate_attack_severity(current_message) if roast_defense else 0
         }
         
     def get_emotional_state(self, user_id: str) -> Dict[str, any]:
@@ -241,7 +310,8 @@ class EmotionalCore:
             'trust_score': self.calculate_trust_score(user_id),
             'interaction_count': self.user_interaction_count.get(user_id, 0),
             'recent_sentiments': self.user_sentiment_history.get(user_id, [])[-5:],
-            'mood_baseline': self.user_mood_baseline.get(user_id, 50)
+            'mood_baseline': self.user_mood_baseline.get(user_id, 50),
+            'attack_history': len(self.user_attack_history.get(user_id, []))
         }
 
 # 🌐 Global Singleton

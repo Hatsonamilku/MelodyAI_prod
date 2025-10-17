@@ -141,6 +141,14 @@
         .control-btn:hover {
             background: #6c5ce7;
         }
+        .control-btn.active {
+            background: rgba(0, 184, 148, 0.3);
+            border-color: #00b894;
+        }
+        .control-btn.inactive {
+            background: rgba(255, 118, 117, 0.3);
+            border-color: #ff7675;
+        }
         .status {
             text-align: center;
             padding: 10px;
@@ -327,7 +335,7 @@
                 
                 <div class="control-group">
                     <div class="control-title">🤖 Auto-Yap Mode</div>
-                    <button class="control-btn" id="autoYapBtn" onclick="toggleAutoYap()">
+                    <button class="control-btn inactive" id="autoYapBtn" onclick="toggleAutoYap()">
                         Auto-Yap: <span id="autoYapStatus">Loading...</span>
                     </button>
                 </div>
@@ -415,6 +423,7 @@
         socket.on('connect', () => {
             updateStatus('online', '✅ Connected to cloud');
             loadServers();
+            loadAutoYapStatus();
         });
 
         socket.on('disconnect', () => {
@@ -447,7 +456,7 @@
             currentAnalytics = analytics;
             updateAnalyticsDisplay();
             
-            // NEW: Update charts if they exist
+            // Update charts if they exist
             if (window.advancedCharts) {
                 window.advancedCharts.updateCharts(analytics);
             }
@@ -458,7 +467,7 @@
             updateCurrentTarget(data.channel_name);
         });
 
-        // NEW: Cloud insight handler
+        // Cloud insight handler
         socket.on('cloud_insight', function(data) {
             document.getElementById('mysteryOutput').innerHTML = 
                 `<div class="message mysterious">
@@ -470,18 +479,28 @@
                 </div>`;
         });
 
-        // Server/Channel Management
+        // Server/Channel Management - FIXED VERSION
         function loadServers() {
+            console.log("🔄 Loading servers...");
             fetch('/api/servers')
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     return response.json();
                 })
                 .then(servers => {
+                    console.log(`📊 Received ${servers.length} servers:`, servers);
+                    
                     const serverSelect = document.getElementById('serverSelect');
                     serverSelect.innerHTML = '<option value="">Select a server</option>';
+                    
+                    if (servers.length === 0) {
+                        serverSelect.innerHTML = '<option value="">No servers available</option>';
+                        console.log("❌ No servers returned from API");
+                        showNotification('No servers found. Check bot permissions.');
+                        return;
+                    }
                     
                     servers.forEach(server => {
                         const option = document.createElement('option');
@@ -491,15 +510,13 @@
                     });
                     
                     document.getElementById('serverCount').textContent = servers.length;
-                    console.log(`Loaded ${servers.length} servers`);
-                    
-                    if (servers.length > 0) {
-                        updateCurrentTarget('Not set - select a channel');
-                    }
+                    console.log(`✅ Loaded ${servers.length} servers`);
+                    showNotification(`Loaded ${servers.length} servers`);
                 })
                 .catch(error => {
-                    console.error('Error loading servers:', error);
+                    console.error('❌ Error loading servers:', error);
                     document.getElementById('serverSelect').innerHTML = '<option value="">Error loading servers</option>';
+                    showNotification('Failed to load servers: ' + error.message);
                 });
         }
 
@@ -508,25 +525,33 @@
             const serverId = serverSelect.value;
             const channelSelect = document.getElementById('channelSelect');
             
+            console.log(`🔄 Loading channels for server: ${serverId}`);
+            
             if (!serverId) {
                 channelSelect.innerHTML = '<option value="">Select a server first</option>';
                 return;
             }
             
             channelSelect.innerHTML = '<option value="">Loading channels...</option>';
+            channelSelect.disabled = true;
             
             fetch(`/api/servers/${serverId}/channels`)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     return response.json();
                 })
                 .then(channels => {
+                    console.log(`📁 Received ${channels.length} channels:`, channels);
+                    
                     channelSelect.innerHTML = '<option value="">Select a channel</option>';
+                    channelSelect.disabled = false;
                     
                     if (channels.length === 0) {
                         channelSelect.innerHTML = '<option value="">No channels available</option>';
+                        console.log("❌ No channels returned from API");
+                        showNotification('No accessible channels found in this server.');
                         return;
                     }
                     
@@ -540,11 +565,14 @@
                         channelSelect.appendChild(option);
                     });
                     
-                    console.log(`Loaded ${channels.length} channels for server ${serverId}`);
+                    console.log(`✅ Loaded ${channels.length} channels`);
+                    showNotification(`Loaded ${channels.length} channels`);
                 })
                 .catch(error => {
-                    console.error('Error loading channels:', error);
+                    console.error('❌ Error loading channels:', error);
                     channelSelect.innerHTML = '<option value="">Error loading channels</option>';
+                    channelSelect.disabled = false;
+                    showNotification('Failed to load channels: ' + error.message);
                 });
         }
 
@@ -554,6 +582,8 @@
             const selectedOption = channelSelect.options[channelSelect.selectedIndex];
             
             if (!channelId) return;
+            
+            console.log(`🎯 Setting target channel: ${channelId} (${selectedOption.textContent})`);
             
             fetch('/api/set_target_channel', {
                 method: 'POST',
@@ -565,14 +595,14 @@
                 if (data.status === 'success') {
                     currentTargetChannel = channelId;
                     updateCurrentTarget(selectedOption.textContent);
-                    showNotification(`Target channel set to: ${selectedOption.textContent}`);
+                    showNotification(`✅ Target channel set to: ${selectedOption.textContent}`);
                 } else {
-                    showNotification('Failed to set target channel');
+                    showNotification('❌ Failed to set target channel');
                 }
             })
             .catch(error => {
                 console.error('Error setting target channel:', error);
-                showNotification('Error setting target channel');
+                showNotification('❌ Error setting target channel');
             });
         }
 
@@ -589,8 +619,11 @@
         }
 
         function refreshServers() {
+            console.log("🔄 Refreshing server list...");
             loadServers();
-            showNotification('Refreshing server list...');
+            // Also reset channels when refreshing servers
+            document.getElementById('channelSelect').innerHTML = '<option value="">Select a server first</option>';
+            updateCurrentTarget(null);
         }
 
         function updateStatus(status, message) {
@@ -656,10 +689,14 @@
                 if (data.status === 'success') {
                     autoYapEnabled = newState;
                     updateAutoYapButton();
+                    showNotification(`Auto-Yap ${newState ? 'enabled' : 'disabled'}`);
+                } else {
+                    showNotification('Failed to toggle Auto-Yap');
                 }
             })
             .catch(error => {
                 console.error('Error toggling Auto-Yap:', error);
+                showNotification('Error toggling Auto-Yap');
             });
         }
 
@@ -669,11 +706,27 @@
             
             if (autoYapEnabled) {
                 status.textContent = 'Enabled ✅';
-                btn.style.background = 'rgba(0, 184, 148, 0.3)';
+                btn.className = 'control-btn active';
             } else {
                 status.textContent = 'Disabled ❌';
-                btn.style.background = 'rgba(255, 118, 117, 0.3)';
+                btn.className = 'control-btn inactive';
             }
+        }
+
+        // Load initial Auto-Yap status
+        function loadAutoYapStatus() {
+            fetch('/api/auto_yap_status')
+                .then(response => response.json())
+                .then(data => {
+                    autoYapEnabled = data.enabled;
+                    updateAutoYapButton();
+                    console.log('Auto-Yap status loaded:', autoYapEnabled);
+                })
+                .catch(error => {
+                    console.error('Error loading Auto-Yap status:', error);
+                    autoYapEnabled = false;
+                    updateAutoYapButton();
+                });
         }
 
         // Analytics functions
@@ -720,7 +773,7 @@
             document.getElementById('messageCount').textContent = messageCount;
         }
 
-        // NEW: Cloud Mystery Functions
+        // Cloud Mystery Functions
         function requestVoidWhisper() {
             fetch('/api/void_whisper')
                 .then(response => response.json())
@@ -745,12 +798,10 @@
         }
 
         function requestRelationshipInsight() {
-            // Trigger a cloud insight
             socket.emit('request_cloud_insight', {user: 'Web User'});
         }
 
         function showNotification(message) {
-            // Create a temporary notification element
             const notification = document.createElement('div');
             notification.style.cssText = `
                 position: fixed;
@@ -796,7 +847,7 @@
         // Load initial analytics and servers
         document.addEventListener('DOMContentLoaded', function() {
             refreshAnalytics();
-            updateAutoYapButton();
+            loadAutoYapStatus();
             
             // Initialize charts with a small delay
             setTimeout(() => {

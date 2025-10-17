@@ -6,24 +6,64 @@
         {
           "status": "sick",
           "severity": 2,
-          "reported_at": "2025-10-17T07:15:48.413873",
+          "reported_at": "2025-10-17T11:46:48.714592",
           "is_resolved": false
         }
       ]
     },
     "1410242201434460161": {
-      "facts": []
-    },
-    "419918999292346368": {
-      "facts": [],
+      "facts": [
+        {
+          "key": "likes_",
+          "value": "yes",
+          "category": "preferences",
+          "confidence": 1,
+          "first_mentioned": "2025-10-17T10:47:28.822886",
+          "last_mentioned": "2025-10-17T10:47:28.822886",
+          "mention_count": 1
+        }
+      ],
       "health_status": [
+        {
+          "status": "sick",
+          "severity": 2,
+          "reported_at": "2025-10-17T10:25:02.479728",
+          "is_resolved": false
+        },
+        {
+          "status": "sick",
+          "severity": 2,
+          "reported_at": "2025-10-17T10:27:03.683048",
+          "is_resolved": false
+        },
+        {
+          "status": "sick",
+          "severity": 2,
+          "reported_at": "2025-10-17T10:28:04.309117",
+          "is_resolved": false
+        },
         {
           "status": "recovered",
           "severity": 1,
-          "reported_at": "2025-10-17T02:20:32.506804",
+          "reported_at": "2025-10-17T10:32:38.620282",
+          "is_resolved": false
+        },
+        {
+          "status": "sick",
+          "severity": 2,
+          "reported_at": "2025-10-17T10:47:28.822886",
+          "is_resolved": false
+        },
+        {
+          "status": "sick",
+          "severity": 2,
+          "reported_at": "2025-10-17T11:58:51.948299",
           "is_resolved": false
         }
       ]
+    },
+    "419918999292346368": {
+      "facts": []
     }
   }
 }
