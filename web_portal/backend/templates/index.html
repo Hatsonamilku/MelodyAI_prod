@@ -224,6 +224,39 @@
             border-radius: 5px;
         }
         
+        /* Enhanced Analytics Styles */
+        .analytics-enhanced {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .chart-container {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .cloud-features {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(155, 89, 182, 0.1);
+            border-radius: 10px;
+        }
+        .mystery-output {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+            min-height: 40px;
+        }
+        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -341,9 +374,37 @@
                 🔄 Refresh Analytics
             </button>
         </div>
+
+        <!-- ENHANCED ANALYTICS SECTION -->
+        <div class="analytics-enhanced">
+            <h2>🔮 Advanced Relationship Analytics</h2>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <canvas id="sentimentChart" height="250"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="relationshipChart" height="250"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-container" style="margin-top: 20px;">
+                <canvas id="activityChart" height="150"></canvas>
+            </div>
+            
+            <div class="cloud-features">
+                <h3>🌩️ Cloud Mysteries</h3>
+                <button onclick="requestVoidWhisper()" class="control-btn" style="margin: 5px;">🔮 Listen to Void</button>
+                <button onclick="requestCloudMemory()" class="control-btn" style="margin: 5px;">🌀 Cloud Memory</button>
+                <button onclick="requestRelationshipInsight()" class="control-btn" style="margin: 5px;">💫 Relationship Insight</button>
+                <div id="mysteryOutput" class="mystery-output"></div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/advanced-charts.js') }}"></script>
     <script>
         const socket = io();
         let autoYapEnabled = false;
@@ -385,11 +446,28 @@
         socket.on('analytics_update', (analytics) => {
             currentAnalytics = analytics;
             updateAnalyticsDisplay();
+            
+            // NEW: Update charts if they exist
+            if (window.advancedCharts) {
+                window.advancedCharts.updateCharts(analytics);
+            }
         });
 
         socket.on('target_channel_changed', (data) => {
             showNotification(`Target channel changed to: ${data.channel_name}`);
             updateCurrentTarget(data.channel_name);
+        });
+
+        // NEW: Cloud insight handler
+        socket.on('cloud_insight', function(data) {
+            document.getElementById('mysteryOutput').innerHTML = 
+                `<div class="message mysterious">
+                    <div class="message-header">
+                        <span class="user">🌩️ Cloud Insight</span>
+                        <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <div class="message-content">${data.insight}</div>
+                </div>`;
         });
 
         // Server/Channel Management
@@ -642,6 +720,35 @@
             document.getElementById('messageCount').textContent = messageCount;
         }
 
+        // NEW: Cloud Mystery Functions
+        function requestVoidWhisper() {
+            fetch('/api/void_whisper')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('mysteryOutput').innerHTML = 
+                        `<div class="message mysterious">
+                            <div class="message-header">
+                                <span class="user">🌩️ The Void</span>
+                                <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+                            </div>
+                            <div class="message-content">${data.whisper}</div>
+                        </div>`;
+                });
+        }
+
+        function requestCloudMemory() {
+            fetch('/api/cloud_response', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: 'what do you remember', user: 'Web User'})
+            });
+        }
+
+        function requestRelationshipInsight() {
+            // Trigger a cloud insight
+            socket.emit('request_cloud_insight', {user: 'Web User'});
+        }
+
         function showNotification(message) {
             // Create a temporary notification element
             const notification = document.createElement('div');
@@ -690,7 +797,14 @@
         document.addEventListener('DOMContentLoaded', function() {
             refreshAnalytics();
             updateAutoYapButton();
-            // Servers will load when socket connects
+            
+            // Initialize charts with a small delay
+            setTimeout(() => {
+                if (typeof AdvancedCharts !== 'undefined') {
+                    window.advancedCharts = new AdvancedCharts();
+                    console.log('Advanced charts initialized');
+                }
+            }, 1000);
         });
     </script>
 </body>

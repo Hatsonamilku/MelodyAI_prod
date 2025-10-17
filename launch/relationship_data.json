@@ -1,43 +1,15 @@
 {
   "273365578020814848": {
-    "points": 227,
-    "likes": 3,
-    "dislikes": 3,
-    "neutral_interactions": 17,
+    "points": 288,
+    "likes": 4,
+    "dislikes": 5,
+    "neutral_interactions": 25,
     "gifts_received": 0,
     "gifts_given": 0,
-    "conversation_depth": 3,
-    "interactions": 21,
-    "last_sync": "2025-10-16T14:18:45.077599",
+    "conversation_depth": 4,
+    "interactions": 30,
+    "last_sync": "2025-10-17T03:17:20.580418",
     "compatibility_history": [
-      {
-        "timestamp": "2025-10-16T11:35:16.115608",
-        "compatibility": 58
-      },
-      {
-        "timestamp": "2025-10-16T11:53:52.574675",
-        "compatibility": 68
-      },
-      {
-        "timestamp": "2025-10-16T11:55:39.680582",
-        "compatibility": 60
-      },
-      {
-        "timestamp": "2025-10-16T11:57:27.035384",
-        "compatibility": 71
-      },
-      {
-        "timestamp": "2025-10-16T13:13:24.696847",
-        "compatibility": 63
-      },
-      {
-        "timestamp": "2025-10-16T13:15:53.481272",
-        "compatibility": 64
-      },
-      {
-        "timestamp": "2025-10-16T13:16:04.053377",
-        "compatibility": 76
-      },
       {
         "timestamp": "2025-10-16T13:16:17.351164",
         "compatibility": 67
@@ -49,9 +21,37 @@
       {
         "timestamp": "2025-10-16T14:18:45.077599",
         "compatibility": 65
+      },
+      {
+        "timestamp": "2025-10-16T18:02:05.293049",
+        "compatibility": 75
+      },
+      {
+        "timestamp": "2025-10-16T18:06:28.424260",
+        "compatibility": 75
+      },
+      {
+        "timestamp": "2025-10-16T18:06:59.922456",
+        "compatibility": 75
+      },
+      {
+        "timestamp": "2025-10-16T18:51:03.650713",
+        "compatibility": 75
+      },
+      {
+        "timestamp": "2025-10-17T03:15:48.413873",
+        "compatibility": 75
+      },
+      {
+        "timestamp": "2025-10-17T03:16:03.975177",
+        "compatibility": 75
+      },
+      {
+        "timestamp": "2025-10-17T03:17:20.580418",
+        "compatibility": 72
       }
     ],
-    "trust_score": 73,
+    "trust_score": 80,
     "onboarding_complete": false,
     "collected_facts": [
       "name: Hatsona",
@@ -77,24 +77,16 @@
     ]
   },
   "419918999292346368": {
-    "points": 119,
-    "likes": 2,
+    "points": 157,
+    "likes": 3,
     "dislikes": 2,
-    "neutral_interactions": 5,
+    "neutral_interactions": 9,
     "gifts_received": 0,
     "gifts_given": 0,
-    "conversation_depth": 1,
-    "interactions": 7,
-    "last_sync": "2025-10-16T11:55:44.507364",
+    "conversation_depth": 2,
+    "interactions": 12,
+    "last_sync": "2025-10-16T22:20:50.522505",
     "compatibility_history": [
-      {
-        "timestamp": "2025-10-16T11:28:17.383945",
-        "compatibility": 21
-      },
-      {
-        "timestamp": "2025-10-16T11:28:39.625690",
-        "compatibility": 23
-      },
       {
         "timestamp": "2025-10-16T11:54:07.117403",
         "compatibility": 17
@@ -114,9 +106,29 @@
       {
         "timestamp": "2025-10-16T11:55:44.507364",
         "compatibility": 45
+      },
+      {
+        "timestamp": "2025-10-16T22:18:50.991587",
+        "compatibility": 37
+      },
+      {
+        "timestamp": "2025-10-16T22:19:16.336775",
+        "compatibility": 38
+      },
+      {
+        "timestamp": "2025-10-16T22:19:39.163719",
+        "compatibility": 50
+      },
+      {
+        "timestamp": "2025-10-16T22:20:32.522743",
+        "compatibility": 50
+      },
+      {
+        "timestamp": "2025-10-16T22:20:50.522505",
+        "compatibility": 52
       }
     ],
-    "trust_score": 83,
+    "trust_score": 92,
     "onboarding_complete": true,
     "collected_facts": []
   }

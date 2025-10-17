@@ -1,0 +1,192 @@
+﻿🎵 MELODY AI - FILE STRUCTURE EXPORT
+📅 Generated: 10/14/2025 17:24:20
+📁 Root Path: C:\Users\roven\Desktop\melody_ai\melody_ai_v2
+
+
+📁 FOLDER STRUCTURE:
+
+📁 brain/
+  📁 core_intelligence/
+    📄 __init__.py (0.00 KB)
+    📄 intelligence_orchestrator.py (8.08 KB)
+  📁 memory_systems/
+    📄 __init__.py (0.00 KB)
+    📄 melody_group_chat_simulation (3.44 KB)
+    📄 permanent_facts.py (11.77 KB)
+    📄 semantic_memory.py (7.12 KB)
+  📁 personality/
+    📄 __init__.py (0.00 KB)
+    📄 adaptive_tones.py (5.92 KB)
+    📄 emotional_core.py (6.44 KB)
+  📁 understanding/
+    📄 __init__.py (0.00 KB)
+  📄 __init__.py (0.00 KB)
+📁 config/
+  📄 __init__.py (0.00 KB)
+📁 features/
+  📄 __init__.py (0.00 KB)
+📁 launch/
+  📄 .env (0.20 KB)
+  📄 __init__.py (0.00 KB)
+  📄 bot_core.py (4.94 KB)
+  📄 command_system.py (8.60 KB)
+  📄 main.py (3.87 KB)
+  📄 melody_memory.db (84.00 KB)
+  📄 test_personality_v3.py (7.10 KB)
+📁 services/
+  📁 ai_providers/
+    📄 __init__.py (0.00 KB)
+    📄 deepseek_client.py (6.57 KB)
+  📁 gaming/
+    📄 __init__.py (0.00 KB)
+  📁 media/
+    📄 __init__.py (0.00 KB)
+  📄 __init__.py (0.00 KB)
+  📄 champ_module.py (17.79 KB)
+📁 test/
+  📄 debug_env.py (0.46 KB)
+  📄 melody_group_chat_simulation.py (3.44 KB)
+  📄 melody_memory.db (52.00 KB)
+  📄 melody_multi_user_simulation.py (4.42 KB)
+  📄 melody_permutation_test.py (1.64 KB)
+  📄 test_personality_v3.py (7.10 KB)
+  📄 testpersona.py (3.55 KB)
+📁 test_results/
+  📄 melody_v3_test_data_20251014_165123.json (5.11 KB)
+  📄 melody_v3_test_data_20251014_165901.json (5.11 KB)
+  📄 melody_v3_test_data_20251014_170056.json (5.11 KB)
+  📄 melody_v3_test_data_20251014_170639.json (5.11 KB)
+  📄 melody_v3_test_report_20251014_110823.txt (0.34 KB)
+  📄 melody_v3_test_report_20251014_165123.txt (4.06 KB)
+  📄 melody_v3_test_report_20251014_165901.txt (4.06 KB)
+  📄 melody_v3_test_report_20251014_170056.txt (4.06 KB)
+  📄 melody_v3_test_report_20251014_170639.txt (4.06 KB)
+📄 .env (0.20 KB)
+📄 files_list.txt (16.32 KB)
+📄 folder_creation.py (1.08 KB)
+📄 folder_structure.txt (4.26 KB)
+📄 melody_ai_file_structure.txt (0.16 KB)
+📄 melody_memory.db (36.00 KB)
+📄 README.md (5.11 KB)
+📄 requirements.txt (0.11 KB)
+📄 run_melody.py (0.64 KB)
+📄 setup.py (0.98 KB)
+📄 start_bot.py (0.23 KB)
+📄 test_suite_v3.py (22.77 KB)
+
+
+📄 DETAILED FILE LIST:
+
+📄 .env
+   └── Size: 0.20 KB | Modified: 14/10/2025 17:00:34
+📄 files_list.txt
+   └── Size: 16.32 KB | Modified: 13/10/2025 23:54:51
+📄 folder_creation.py
+   └── Size: 1.08 KB | Modified: 13/10/2025 21:49:29
+📄 folder_structure.txt
+   └── Size: 4.26 KB | Modified: 13/10/2025 23:53:24
+📄 melody_ai_file_structure.txt
+   └── Size: 2.49 KB | Modified: 14/10/2025 17:24:20
+📄 melody_memory.db
+   └── Size: 36.00 KB | Modified: 14/10/2025 10:03:32
+📄 README.md
+   └── Size: 5.11 KB | Modified: 14/10/2025 10:25:00
+📄 requirements.txt
+   └── Size: 0.11 KB | Modified: 13/10/2025 22:09:09
+📄 run_melody.py
+   └── Size: 0.64 KB | Modified: 13/10/2025 22:56:08
+📄 setup.py
+   └── Size: 0.98 KB | Modified: 13/10/2025 22:09:24
+📄 start_bot.py
+   └── Size: 0.23 KB | Modified: 13/10/2025 22:18:13
+📄 test_suite_v3.py
+   └── Size: 22.77 KB | Modified: 14/10/2025 17:05:56
+📄 brain\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 brain\core_intelligence\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 brain\core_intelligence\intelligence_orchestrator.py
+   └── Size: 8.08 KB | Modified: 14/10/2025 10:15:35
+📄 brain\memory_systems\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 brain\memory_systems\melody_group_chat_simulation
+   └── Size: 3.44 KB | Modified: 14/10/2025 02:04:04
+📄 brain\memory_systems\permanent_facts.py
+   └── Size: 11.77 KB | Modified: 13/10/2025 21:53:47
+📄 brain\memory_systems\semantic_memory.py
+   └── Size: 7.12 KB | Modified: 13/10/2025 21:54:30
+📄 brain\personality\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 brain\personality\adaptive_tones.py
+   └── Size: 5.92 KB | Modified: 13/10/2025 21:48:56
+📄 brain\personality\emotional_core.py
+   └── Size: 6.44 KB | Modified: 14/10/2025 10:09:40
+📄 brain\understanding\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 config\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 features\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 launch\.env
+   └── Size: 0.20 KB | Modified: 14/10/2025 16:58:13
+📄 launch\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 launch\bot_core.py
+   └── Size: 4.94 KB | Modified: 13/10/2025 22:40:40
+📄 launch\command_system.py
+   └── Size: 8.60 KB | Modified: 13/10/2025 22:37:52
+📄 launch\main.py
+   └── Size: 3.87 KB | Modified: 13/10/2025 23:28:53
+📄 launch\melody_memory.db
+   └── Size: 84.00 KB | Modified: 14/10/2025 01:56:04
+📄 launch\test_personality_v3.py
+   └── Size: 7.10 KB | Modified: 14/10/2025 09:58:54
+📄 services\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 services\champ_module.py
+   └── Size: 17.79 KB | Modified: 13/10/2025 23:07:45
+📄 services\ai_providers\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 services\ai_providers\deepseek_client.py
+   └── Size: 6.57 KB | Modified: 14/10/2025 10:14:36
+📄 services\gaming\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 services\media\__init__.py
+   └── Size: 0.00 KB | Modified: 13/10/2025 21:47:10
+📄 test\debug_env.py
+   └── Size: 0.46 KB | Modified: 13/10/2025 22:49:22
+📄 test\melody_group_chat_simulation.py
+   └── Size: 3.44 KB | Modified: 14/10/2025 02:04:27
+📄 test\melody_memory.db
+   └── Size: 52.00 KB | Modified: 14/10/2025 02:05:20
+📄 test\melody_multi_user_simulation.py
+   └── Size: 4.42 KB | Modified: 14/10/2025 02:00:10
+📄 test\melody_permutation_test.py
+   └── Size: 1.64 KB | Modified: 14/10/2025 01:59:56
+📄 test\test_personality_v3.py
+   └── Size: 7.10 KB | Modified: 14/10/2025 09:58:54
+📄 test\testpersona.py
+   └── Size: 3.55 KB | Modified: 14/10/2025 10:03:00
+📄 test_results\melody_v3_test_data_20251014_165123.json
+   └── Size: 5.11 KB | Modified: 14/10/2025 16:51:23
+📄 test_results\melody_v3_test_data_20251014_165901.json
+   └── Size: 5.11 KB | Modified: 14/10/2025 16:59:01
+📄 test_results\melody_v3_test_data_20251014_170056.json
+   └── Size: 5.11 KB | Modified: 14/10/2025 17:00:56
+📄 test_results\melody_v3_test_data_20251014_170639.json
+   └── Size: 5.11 KB | Modified: 14/10/2025 17:06:39
+📄 test_results\melody_v3_test_report_20251014_110823.txt
+   └── Size: 0.34 KB | Modified: 14/10/2025 11:08:23
+📄 test_results\melody_v3_test_report_20251014_165123.txt
+   └── Size: 4.06 KB | Modified: 14/10/2025 16:51:23
+📄 test_results\melody_v3_test_report_20251014_165901.txt
+   └── Size: 4.06 KB | Modified: 14/10/2025 16:59:01
+📄 test_results\melody_v3_test_report_20251014_170056.txt
+   └── Size: 4.06 KB | Modified: 14/10/2025 17:00:56
+📄 test_results\melody_v3_test_report_20251014_170639.txt
+   └── Size: 4.06 KB | Modified: 14/10/2025 17:06:39
+
+
+📊 SUMMARY:
+Total Files: 54
+Excluded Folders: node_modules, .git, __pycache__, venv, .vscode, build, dist

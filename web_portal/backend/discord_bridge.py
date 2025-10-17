@@ -1,4 +1,4 @@
-# discord_bridge.py - WITH MULTI-SERVER SUPPORT
+# discord_bridge.py - ENHANCED WITH BETTER ERROR HANDLING
 import discord
 from discord.ext import commands
 import asyncio
@@ -13,9 +13,9 @@ load_dotenv()
 class DiscordBridge:
     def __init__(self, web_portal_ref):
         self.web_portal = web_portal_ref
-        self.bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
+        intents = discord.Intents.all()
+        self.bot = commands.Bot(command_prefix='!', intents=intents)
         self.target_channel_id = int(os.getenv('WEB_PORTAL_CHANNEL_ID', 1337024526923595786))
-        self._announcement_sent = False
         self.setup_events()
     
     def setup_events(self):
@@ -25,18 +25,28 @@ class DiscordBridge:
             print(f'🏠 Connected to {len(self.bot.guilds)} servers:')
             for guild in self.bot.guilds:
                 print(f'   - {guild.name} ({guild.member_count} members)')
-            print("🔮 Web portal bridge ready - multi-server support active")
+            
+            # Set initial status
+            await self.bot.change_presence(
+                activity=discord.Activity(
+                    type=discord.ActivityType.watching,
+                    name="the cloud portal 🌩️"
+                )
+            )
         
         @self.bot.event
         async def on_message(message):
-            # Ignore bot messages and only listen to target channel
-            if (message.author.bot or 
-                message.channel.id != self.target_channel_id):
+            # Ignore bot messages
+            if message.author.bot:
                 return
             
-            print(f"📥 DISCORD MESSAGE RECEIVED: {message.author.display_name}: {message.content}")
+            # Only listen to target channel
+            if message.channel.id != self.target_channel_id:
+                return
             
-            # Send Discord message to web portal
+            print(f"📥 DISCORD MESSAGE: {message.author.display_name}: {message.content}")
+            
+            # Create message data for web portal
             discord_msg = {
                 'id': f"discord_{message.id}",
                 'user': message.author.display_name,
@@ -52,19 +62,16 @@ class DiscordBridge:
             # Broadcast to web clients
             if hasattr(self.web_portal, 'broadcast_message'):
                 self.web_portal.broadcast_message(discord_msg)
-                print(f"📥 DISCORD → WEB: {message.author.display_name}: {message.content}")
-            else:
-                print("❌ Web portal not available for broadcasting")
             
-            # Process commands for Melody AI
+            # Process commands
             await self.bot.process_commands(message)
     
     async def send_to_discord(self, message_data):
-        """Send message from web to Discord with CURATED LEAGUE TROLL NAMES"""
+        """Send message from web to Discord"""
         try:
             channel = self.bot.get_channel(self.target_channel_id)
-            if channel:
-                # Verify we can send messages to this channel
+            if channel and hasattr(channel, 'guild'):
+                # Check permissions
                 permissions = channel.permissions_for(channel.guild.me)
                 if not permissions.send_messages:
                     print(f"❌ No permission to send messages in {channel.name}")
@@ -72,63 +79,55 @@ class DiscordBridge:
                 
                 message_content = message_data['message']
                 
-                # Convert Discord user IDs to proper mentions
+                # Convert user ID mentions
                 user_id_pattern = r'@(\d{17,19})'
                 message_content = re.sub(user_id_pattern, r'<@\1>', message_content)
                 
-                # CURATED LEAGUE OF LEGENDS TROLL NAMES
+                # CURATED LEAGUE TROLL NAMES
                 league_troll_names = [
-                    "😨 Fiddle Me Mommy says:"                    # Pure nightmare fuel
-                                           # Which one is real?!
+                    "😨 Fiddle Me Mommy says:",
+                    "💀 The Shadow Isles Watcher says:",
+                    "🌙 Nocturne's Nightmare says:",
+                    "🎭 Shaco's Clone says:",
+                    "🌪️ Yasuo's Regret says:",
+                    "❄️ Lissandra's Iceborn says:",
+                    "🔮 Twisted Fate's Card says:",
+                    "⚔️ Riven's Broken Blade says:",
+                    "🌑 Diana's Moonlight says:",
+                    "💥 Ziggs' Bomb says:"
                 ]
                 
-                # Pick random League troll name
                 selected_name = random.choice(league_troll_names)
                 discord_message = f"**{selected_name}** {message_content}"
                 
-                # Send with allowed mentions so pings actually work
                 await channel.send(
                     discord_message,
-                    allowed_mentions=discord.AllowedMentions(
-                        users=True,
-                        roles=False,  
-                        everyone=False,
-                        replied_user=False
-                    )
+                    allowed_mentions=discord.AllowedMentions(users=True)
                 )
-                print(f"📤 WEB → DISCORD LEAGUE: {selected_name}: {message_content}")
+                print(f"📤 WEB → DISCORD: {selected_name}: {message_content}")
                 return True
             else:
-                print(f"❌ Channel {self.target_channel_id} not found")
+                print(f"❌ Channel {self.target_channel_id} not found or invalid")
+                return False
         except Exception as e:
             print(f"❌ Failed to send to Discord: {e}")
-        return False
+            return False
     
     async def start(self):
         """Start the Discord bot"""
         token = os.getenv('DISCORD_BOT_TOKEN')
         if token:
-            print("🔗 STARTING DISCORD BRIDGE WITH MULTI-SERVER SUPPORT...")
             try:
                 await self.bot.start(token)
-            except RuntimeError as e:
-                if "There is no current event loop" in str(e):
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    await self.bot.start(token)
-                else:
-                    raise e
+            except Exception as e:
+                print(f"❌ Discord login failed: {e}")
         else:
-            print("❌ No Discord token found in .env file")
+            print("❌ No Discord token found")
 
-# Global instance
 _discord_bridge_instance = None
 
 def setup_discord_bridge(web_portal_ref):
     global _discord_bridge_instance
     if _discord_bridge_instance is None:
         _discord_bridge_instance = DiscordBridge(web_portal_ref)
-        print("🆕 Created new Discord bridge instance with multi-server support")
-    else:
-        print("♻️ Using existing Discord bridge instance")
     return _discord_bridge_instance

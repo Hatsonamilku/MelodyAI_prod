@@ -1,4 +1,3 @@
-# main.py - ULTIMATE LAUNCHER WITH BUILT-IN WEB DASHBOARD
 import asyncio
 import os
 import signal
@@ -6,14 +5,8 @@ import sys
 import random
 import json
 import time
-import threading
 from datetime import datetime
 from dotenv import load_dotenv
-
-# 🎯 WEB DASHBOARD IMPORTS
-from flask import Flask, render_template, request, jsonify
-from flask_socketio import SocketIO
-import re
 
 # 🛠️ Load environment from root
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,7 +31,7 @@ if not discord_token:
     print("💡 Make sure your .env file is in the root folder and contains DISCORD_BOT_TOKEN")
     sys.exit(1)
 
-# Import bot components
+# Import bot components - FIXED: Import MelodyBotCore directly to avoid circular imports
 try:
     from bot_core import MelodyBotCore
     print("✅ MelodyBotCore imported successfully!")
@@ -46,231 +39,10 @@ except ImportError as e:
     print(f"❌ Failed to import MelodyBotCore: {e}")
     sys.exit(1)
 
-# 🆕 SIMPLE ANALYTICS FOR WEB DASHBOARD
-class Analytics:
-    def __init__(self):
-        self.message_count = 0
-        self.web_messages = 0
-        self.discord_messages = 0
-        self.users = set()
-        self.message_history = []
-    
-    def track_message(self, message_data):
-        self.message_count += 1
-        self.users.add(message_data.get('user', 'Unknown'))
-        
-        if message_data.get('source') == 'web':
-            self.web_messages += 1
-        else:
-            self.discord_messages += 1
-        
-        self.message_history.append(message_data)
-        if len(self.message_history) > 100:
-            self.message_history = self.message_history[-100:]
-    
-    def get_analytics(self):
-        return {
-            'summary': {
-                'total_messages': self.message_count,
-                'unique_users': len(self.users),
-                'web_messages': self.web_messages,
-                'discord_messages': self.discord_messages
-            },
-            'message_stats': {
-                'web_messages': self.web_messages,
-                'discord_messages': self.discord_messages
-            },
-            'top_users': self._get_top_users()
-        }
-    
-    def _get_top_users(self):
-        user_counts = {}
-        for msg in self.message_history:
-            user = msg.get('user', 'Unknown')
-            user_counts[user] = user_counts.get(user, 0) + 1
-        
-        return sorted(user_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-
-# 🆕 WEB DASHBOARD INTEGRATION
-class WebPortal:
-    def __init__(self, melody_bot):
-        self.melody_bot = melody_bot
-        self.connected_clients = 0
-        self.message_history = []
-        self.analytics = Analytics()
-        
-        # Flask app setup
-        self.app = Flask(__name__)
-        self.app.config["SECRET_KEY"] = "melody_ultimate_launcher_2024"
-        self.socketio = SocketIO(self.app, cors_allowed_origins="*", async_mode='threading')
-        self.setup_routes()
-    
-    def setup_routes(self):
-        @self.app.route("/")
-        def index():
-            return render_template("index.html")
-        
-        @self.app.route("/api/status")
-        def api_status():
-            discord_connected = False
-            if self.melody_bot and hasattr(self.melody_bot.bot, 'is_ready'):
-                try:
-                    discord_connected = self.melody_bot.bot.is_ready()
-                except:
-                    discord_connected = False
-            
-            return jsonify({
-                "status": "online",
-                "clients_connected": self.connected_clients,
-                "discord_connected": discord_connected,
-                "timestamp": datetime.utcnow().isoformat()
-            })
-        
-        @self.app.route("/api/servers")
-        def api_servers():
-            """Get list of servers Melody is in"""
-            if self.melody_bot and self.melody_bot.bot.is_ready():
-                servers = []
-                for guild in self.melody_bot.bot.guilds:
-                    servers.append({
-                        'id': str(guild.id),
-                        'name': guild.name,
-                        'icon': str(guild.icon.url) if guild.icon else None,
-                        'member_count': guild.member_count
-                    })
-                return jsonify(servers)
-            return jsonify([])
-        
-        @self.app.route("/api/servers/<int:server_id>/channels")
-        def api_server_channels(server_id):
-            """Get text channels for a specific server"""
-            if self.melody_bot and self.melody_bot.bot.is_ready():
-                guild = self.melody_bot.bot.get_guild(server_id)
-                if guild:
-                    channels = []
-                    for channel in guild.text_channels:
-                        permissions = channel.permissions_for(guild.me)
-                        if permissions.send_messages:
-                            channels.append({
-                                'id': str(channel.id),
-                                'name': channel.name,
-                                'topic': channel.topic or "",
-                                'position': channel.position
-                            })
-                    channels.sort(key=lambda x: x['position'])
-                    return jsonify(channels)
-            return jsonify([])
-        
-        @self.app.route("/api/set_target_channel", methods=["POST"])
-        def api_set_target_channel():
-            """Change the target channel for messages"""
-            data = request.json
-            channel_id = data.get("channel_id")
-            
-            if channel_id and self.melody_bot:
-                try:
-                    self.melody_bot.web_target_channel_id = int(channel_id)
-                    channel = self.melody_bot.bot.get_channel(int(channel_id))
-                    channel_info = f"#{channel.name}" if channel else "Unknown Channel"
-                    
-                    self.socketio.emit("target_channel_changed", {
-                        "channel_id": channel_id,
-                        "channel_name": channel_info,
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
-                    
-                    return jsonify({"status": "success", "channel_id": channel_id, "channel_name": channel_info})
-                except Exception as e:
-                    return jsonify({"error": str(e)}), 400
-            
-            return jsonify({"error": "Invalid channel ID"}), 400
-        
-        @self.app.route("/api/send_message", methods=["POST"])
-        def api_send_message():
-            data = request.json
-            message = data.get("message", "").strip()
-            user = data.get("user", "Hatsona Milku")
-            
-            if message:
-                web_msg = {
-                    "id": len(self.message_history) + 1,
-                    "user": user,
-                    "message": message,
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "source": "web",
-                    "mysterious": True
-                }
-                self.message_history.append(web_msg)
-                self.broadcast_message(web_msg)
-                
-                # Track analytics
-                self.analytics.track_message(web_msg)
-                
-                print(f"🌩️ WEB MESSAGE: {user} says: {message}")
-                
-                # Send to Discord via the main bot
-                if self.melody_bot:
-                    asyncio.run_coroutine_threadsafe(
-                        self.melody_bot.send_web_message_to_discord(web_msg),
-                        self.melody_bot.bot.loop
-                    )
-                
-                return jsonify({"status": "sent", "message_id": web_msg["id"]})
-            
-            return jsonify({"error": "No message"}), 400
-        
-        @self.app.route("/api/toggle_auto_yap", methods=["POST"])
-        def api_toggle_auto_yap():
-            """Toggle Auto-Yap mode from web"""
-            data = request.json
-            enable = data.get("enable", False)
-            
-            if self.melody_bot:
-                try:
-                    channel_id = self.melody_bot.web_target_channel_id
-                    if enable:
-                        self.melody_bot.auto_yap_channels.add(channel_id)
-                        status = "enabled ✅"
-                    else:
-                        self.melody_bot.auto_yap_channels.discard(channel_id)
-                        status = "disabled ❌"
-                    
-                    self.socketio.emit("auto_yap_status", {"enabled": enable, "status": status})
-                    return jsonify({"status": "success", "auto_yap": enable})
-                except Exception as e:
-                    return jsonify({"error": str(e)}), 500
-            
-            return jsonify({"error": "Melody bot not ready"}), 400
-        
-        @self.app.route("/api/analytics")
-        def api_analytics():
-            """Get analytics data"""
-            return jsonify(self.analytics.get_analytics())
-        
-        # SocketIO events
-        @self.socketio.on("connect")
-        def handle_connect():
-            self.connected_clients += 1
-            print(f"🌐 WEB CLIENT CONNECTED. Total: {self.connected_clients}")
-            self.socketio.emit("message_history", self.message_history[-50:])
-            self.socketio.emit("analytics_update", self.analytics.get_analytics())
-        
-        @self.socketio.on("disconnect")
-        def handle_disconnect():
-            self.connected_clients -= 1
-            print(f"🌐 WEB CLIENT DISCONNECTED. Total: {self.connected_clients}")
-    
-    def broadcast_message(self, data):
-        """Broadcast message to all web clients"""
-        self.socketio.emit("new_message", data)
-    
-    def start_web_server(self):
-        """Start the web server in a separate thread"""
-        print("🌐 Starting Web Dashboard on http://localhost:5000")
-        self.socketio.run(self.app, host="0.0.0.0", port=5000, debug=False, use_reloader=False)
-
 # 🆕 RELATIONSHIP SYSTEM CONFIGURATION
 RELATIONSHIP_DATA_FILE = "relationship_data.json"
+
+# Relationship Tiers with points, emojis, and emotional messages
 RELATIONSHIP_TIERS = [
     {"name": "Soulmate", "min_points": 5000, "emoji": "💫", "color": 0xFF66CC, 
      "message": "You complete me... our souls are connected forever 💫",
@@ -304,6 +76,7 @@ class RelationshipSystem:
         self.relationships = self.load_relationships()
     
     def load_relationships(self):
+        """Load relationship data from JSON file"""
         try:
             if os.path.exists(self.data_file):
                 with open(self.data_file, 'r') as f:
@@ -316,18 +89,37 @@ class RelationshipSystem:
         return {}
     
     def _migrate_user_data(self, user_data):
+        """Migrate old user data to new structure with all required fields"""
         default_data = {
-            "points": 100, "likes": 0, "dislikes": 0, "neutral_interactions": 0,
-            "gifts_received": 0, "gifts_given": 0, "conversation_depth": 0,
-            "interactions": 0, "last_sync": datetime.utcnow().isoformat(),
-            "compatibility_history": [], "trust_score": 50,
-            "onboarding_complete": False, "collected_facts": []
+            "points": 100,
+            "likes": 0,
+            "dislikes": 0,
+            "neutral_interactions": 0,
+            "gifts_received": 0,
+            "gifts_given": 0,
+            "conversation_depth": 0,
+            "interactions": 0,
+            "last_sync": datetime.utcnow().isoformat(),
+            "compatibility_history": [],
+            "trust_score": 50,
+            "onboarding_complete": False,
+            "collected_facts": []
         }
+        
         for key, value in user_data.items():
             default_data[key] = value
+            
+        if "neutral_interactions" not in user_data:
+            if "interactions" in user_data and "likes" in user_data and "dislikes" in user_data:
+                total_specific = user_data.get("likes", 0) + user_data.get("dislikes", 0)
+                default_data["neutral_interactions"] = max(0, user_data.get("interactions", 0) - total_specific)
+            else:
+                default_data["neutral_interactions"] = 0
+                
         return default_data
     
     def save_relationships(self):
+        """Save relationship data to JSON file"""
         try:
             with open(self.data_file, 'w') as f:
                 json.dump(self.relationships, f, indent=2)
@@ -335,39 +127,83 @@ class RelationshipSystem:
             print(f"❌ Error saving relationship data: {e}")
     
     def get_user_data(self, user_id):
+        """Get or create user relationship data with ALL required fields"""
         if user_id not in self.relationships:
             self.relationships[user_id] = {
-                "points": 100, "likes": 0, "dislikes": 0, "neutral_interactions": 0,
-                "gifts_received": 0, "gifts_given": 0, "conversation_depth": 0,
-                "interactions": 0, "last_sync": datetime.utcnow().isoformat(),
-                "compatibility_history": [], "trust_score": 50,
-                "onboarding_complete": False, "collected_facts": []
+                "points": 100,
+                "likes": 0,
+                "dislikes": 0,
+                "neutral_interactions": 0,
+                "gifts_received": 0,
+                "gifts_given": 0,
+                "conversation_depth": 0,
+                "interactions": 0,
+                "last_sync": datetime.utcnow().isoformat(),
+                "compatibility_history": [],
+                "trust_score": 50,
+                "onboarding_complete": False,
+                "collected_facts": []
             }
         else:
             self.relationships[user_id] = self._migrate_user_data(self.relationships[user_id])
+            
         return self.relationships[user_id]
     
     def add_interaction(self, user_id, interaction_type="neutral", points=10, message_content=""):
+        """Add an interaction with sophisticated tracking"""
         user_data = self.get_user_data(user_id)
         user_data["interactions"] += 1
         user_data["last_sync"] = datetime.utcnow().isoformat()
         
+        # Update trust score based on interaction
         if interaction_type == "positive":
             user_data["likes"] += 1
             user_data["points"] += points
             user_data["trust_score"] = min(100, user_data["trust_score"] + 2)
+            if len(message_content) > 20:
+                user_data["conversation_depth"] += 1
+                user_data["points"] += 5
+                user_data["trust_score"] = min(100, user_data["trust_score"] + 3)
+                
         elif interaction_type == "negative":
             user_data["dislikes"] += 1
             user_data["points"] -= points // 2
             user_data["trust_score"] = max(0, user_data["trust_score"] - 5)
-        else:
+            
+        elif interaction_type == "gift_received":
+            user_data["gifts_received"] += 1
+            user_data["points"] += points * 2
+            user_data["trust_score"] = min(100, user_data["trust_score"] + 5)
+            
+        elif interaction_type == "gift_given":
+            user_data["gifts_given"] += 1
+            user_data["points"] += points // 2
+            user_data["trust_score"] = min(100, user_data["trust_score"] + 3)
+            
+        else:  # neutral
             user_data["neutral_interactions"] += 1
             user_data["points"] += points // 2
+            user_data["trust_score"] = min(100, user_data["trust_score"] + 1)
+        
+        if random.random() < 0.05 and interaction_type != "negative":
+            user_data["dislikes"] += 1
+            user_data["points"] -= 3
+            user_data["trust_score"] = max(0, user_data["trust_score"] - 2)
+        
+        current_compat = self.calculate_compatibility(user_data)
+        user_data["compatibility_history"].append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "compatibility": current_compat
+        })
+        
+        if len(user_data["compatibility_history"]) > 10:
+            user_data["compatibility_history"] = user_data["compatibility_history"][-10:]
         
         self.save_relationships()
         return user_data
     
     def get_tier_info(self, points):
+        """Get tier information based on points"""
         for tier in RELATIONSHIP_TIERS:
             if points >= tier["min_points"]:
                 current_tier = tier
@@ -386,37 +222,115 @@ class RelationshipSystem:
         
         return current_tier, next_tier, progress_percent
     
+    def calculate_compatibility(self, user_data):
+        """Calculate sophisticated compatibility percentage with SAFE field access"""
+        if user_data.get("interactions", 0) == 0:
+            return 50
+        
+        likes = user_data.get("likes", 0)
+        dislikes = user_data.get("dislikes", 0)
+        neutral = user_data.get("neutral_interactions", 0)
+        total_interactions = user_data.get("interactions", 0)
+        gifts_received = user_data.get("gifts_received", 0)
+        conversation_depth = user_data.get("conversation_depth", 0)
+        
+        if likes + dislikes > 0:
+            base_ratio = (likes / (likes + dislikes)) * 100
+        else:
+            base_ratio = 50
+        
+        interaction_bonus = min(total_interactions / 20 * 30, 30)
+        gift_compatibility = min(gifts_received * 10, 15)
+        depth_compatibility = min(conversation_depth * 5, 15)
+        
+        consistency_bonus = 0
+        compatibility_history = user_data.get("compatibility_history", [])
+        if len(compatibility_history) >= 3:
+            recent_compat = [c["compatibility"] for c in compatibility_history[-3:]]
+            avg_compat = sum(recent_compat) / len(recent_compat)
+            if max(recent_compat) - min(recent_compat) <= 10:
+                consistency_bonus = 10
+        
+        compatibility = (
+            (base_ratio * 0.4) +
+            interaction_bonus +
+            gift_compatibility +
+            depth_compatibility +
+            consistency_bonus
+        )
+        
+        compatibility = max(0, min(100, int(compatibility)))
+        return compatibility
+    
     def get_busy_response(self, points):
+        """Get emotional busy response based on relationship tier"""
         for tier in RELATIONSHIP_TIERS:
             if points >= tier["min_points"]:
                 return tier["busy_response"]
         return RELATIONSHIP_TIERS[-1]["busy_response"]
     
     def analyze_conversation_sentiment(self, message_content):
+        """Analyze message content to determine interaction type"""
         content_lower = message_content.lower()
-        positive_keywords = ["love", "like", "awesome", "amazing", "great", "good", "best", "cute", "beautiful"]
-        negative_keywords = ["hate", "dislike", "stupid", "dumb", "ugly", "bad", "worst", "annoying"]
+        
+        positive_keywords = ["love", "like", "awesome", "amazing", "great", "good", "best", "cute", "beautiful", "handsome", "smart", "funny", "wonderful", "perfect", "thanks", "thank you", "appreciate", "❤️", "💕", "💖", "😍", "🥰", "😊"]
+        negative_keywords = ["hate", "dislike", "stupid", "dumb", "ugly", "bad", "worst", "annoying", "boring", "idiot", "dummy", "suck", "terrible", "awful", "🤮", "😠", "😡", "👎"]
+        gift_keywords = ["gift", "present", "give you", "for you", "🎁", "🎀"]
         
         positive_count = sum(1 for word in positive_keywords if word in content_lower)
         negative_count = sum(1 for word in negative_keywords if word in content_lower)
+        gift_count = sum(1 for word in gift_keywords if word in content_lower)
         
-        if negative_count > positive_count:
+        if gift_count > 0:
+            return "gift_received"
+        elif negative_count > positive_count:
             return "negative"
         elif positive_count > negative_count:
             return "positive"
         else:
             return "neutral"
 
-# 🎯 ENHANCED BOT CORE WITH WEB DASHBOARD INTEGRATION
+# 🆕 TEST COMMANDS CLASS
+import discord
+from discord.ext import commands
+
+class TestCommands(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command()
+    async def test_send(self, ctx):
+        """Test if bot can send messages in this channel"""
+        print(f"🔍 TEST: Manual test send command received in {ctx.channel.name}")
+        try:
+            msg = await ctx.send("✅ Test message received! Bot can send messages here.")
+            print(f"✅ TEST: Successfully sent message with ID: {msg.id}")
+        except Exception as e:
+            print(f"❌ TEST: Failed to send: {e}")
+
+    @commands.command()
+    async def test_channel(self, ctx):
+        """Debug channel permissions"""
+        print(f"🔍 DEBUG CHANNEL: {ctx.channel.name} (ID: {ctx.channel.id})")
+        
+        perms = ctx.channel.permissions_for(ctx.guild.me)
+        print(f"🔍 DEBUG CHANNEL: Send Messages: {perms.send_messages}")
+        print(f"🔍 DEBUG CHANNEL: Read Messages: {perms.read_messages}")
+        print(f"🔍 DEBUG CHANNEL: View Channel: {perms.view_channel}")
+        
+        await ctx.send(f"🔍 Channel Debug: Send Messages = {perms.send_messages}")
+
+    @commands.command()
+    async def test_ping(self, ctx):
+        """Simple ping test"""
+        await ctx.send("🏓 Pong! Bot is responsive!")
+
+# 🎯 ENHANCED BOT CORE WITH ALL FEATURES
 class EnhancedMelodyBotCore(MelodyBotCore):
     def __init__(self, command_prefix="!"):
         super().__init__(command_prefix)
         
-        # 🆕 WEB DASHBOARD INTEGRATION
-        self.web_target_channel_id = int(os.getenv('WEB_PORTAL_CHANNEL_ID', 1337024526923595786))
-        self.web_portal = None
-        
-        # AI Services
+        # 🆕 FIXED: Import services here to avoid circular imports
         try:
             from services.ai_providers.deepseek_client import DeepSeekClient
             from brain.memory_systems.permanent_facts import permanent_facts
@@ -425,75 +339,681 @@ class EnhancedMelodyBotCore(MelodyBotCore):
                 print("✅ DeepSeek AI Client configured!")
             else:
                 self.ai_provider = None
+                print("⚠️ No DeepSeek API key - AI features disabled")
             
             self.permanent_facts = permanent_facts
             print("✅ Permanent Facts imported successfully!")
         except ImportError as e:
             print(f"⚠️ Could not import AI services: {e}")
+            # Create proper fallback that accepts arguments
             class FallbackDeepSeekClient:
+                def __init__(self, api_key=None):
+                    self.api_key = api_key
+                
                 async def get_response(self, message, user_id, context=""):
                     fallbacks = [
-                        "OMG HII BESTIE!! 💫✨ My AI brain is taking a quick nap but I'm still here!",
+                        "OMG HII BESTIE!! 💫✨ My AI brain is taking a quick nap but I'm still here! What's the tea?? 🔥",
                         "YOOO I'm here! 💫✨ (AI system offline but I've got your back!)",
                         "Hey there! 👋 My deep thoughts are resting but I'm still listening! 💖"
                     ]
                     return random.choice(fallbacks)
-                async def close(self): pass
+                
+                async def close(self):
+                    pass
+            
             self.ai_provider = FallbackDeepSeekClient(api_key=deepseek_key)
             self.permanent_facts = None
         
         self.relationship_system = RelationshipSystem()
         self.conversation_history = []
         
-        # AUTO-YAP SYSTEM
+        # 🆕 AUTO-YAP SYSTEM
         self.auto_yap_channels = set()
         self.user_cooldowns = {}
+        self.trigger_words = self._load_emotional_triggers()
         self.last_auto_yap_time = 0
         
-        print("✅ Enhanced Melody Bot Core initialized with Web Dashboard support!")
-    
-    def setup_web_portal(self):
-        """Setup the web portal for this bot instance"""
-        self.web_portal = WebPortal(self)
-        web_thread = threading.Thread(target=self.web_portal.start_web_server, daemon=True)
-        web_thread.start()
-        print("🌐 Web Dashboard integrated and starting...")
-        return self.web_portal
-    
-    async def send_web_message_to_discord(self, message_data):
-        """Send web portal messages to Discord with League troll names"""
+        # 🆕 NEW USER ONBOARDING
+        self.pending_onboarding = {}  # Users who need onboarding
+        
+    def _load_emotional_triggers(self):
+        """Load emotional trigger words with tier-based responses"""
+        return {
+            'hug': {
+                'toxic': ["ugh fine *pat pat* 😒", "don't touch me --'", "*sigh* if i must..."],
+                'rival': ["keep your distance ⚔️", "not in the mood for hugs..."],
+                'neutral': ["*hugs* 😊", "aww come here! 🤗"],
+                'friend': ["*big warm hug* you're awesome! 💕", "get over here! *tight hug*"],
+                'soulmate': ["*warm embrace* I'll always be here for you 💝", "*holds you close* you mean everything to me"]
+            },
+            'rage': {
+                'toxic': ["mad cuz bad lol 😂", "skill issue tbh 🤷‍♂️"],
+                'rival': ["finally showing your true colors? ⚔️", "anger doesn't suit you..."],
+                'neutral': ["whoa chill fam 🧊", "take a deep breath! 🌬️"],
+                'friend': ["hey, what's got you so worked up? 💭", "want to talk about it? 🤗"],
+                'soulmate': ["your pain is my pain... tell me what's wrong 💔", "I'm here for you, always 🌙"]
+            },
+            'sleepy': {
+                'toxic': ["go sleep then? 😴", "nobody asked --'"],
+                'rival': ["tired of losing? 😏", "weak..."],
+                'neutral': ["get some rest! 💤", "sweet dreams! 🌙"],
+                'friend': ["you deserve a good nap! 😴💕", "rest well, my friend! 🌟"],
+                'soulmate': ["dream of something wonderful, my love 🌙💫", "sleep well, I'll be here when you wake 💝"]
+            },
+            'hungry': {
+                'toxic': ["go eat then? 🍔", "not my problem --'"],
+                'rival': ["should've packed a lunch ⚔️", "suffering builds character..."],
+                'neutral': ["time for a snack break! 🍕", "food time! 🍽️"],
+                'friend': ["you should eat something! 🍜💕", "don't forget to fuel up! 🍓"],
+                'soulmate': ["let me order your favorite... I remember you love pizza 🍕💝", "you need to take care of yourself! 🥗💫"]
+            },
+            'lmao': {
+                'toxic': ["not that funny tbh 😐", "your humor needs work --'"],
+                'rival': ["glad someone's amused... 😒", "childish..."],
+                'neutral': ["LMAOOO same 😂", "that got me good! 🤣"],
+                'friend': ["you're hilarious! 😂💕", "stop making me laugh so hard! 🤣"],
+                'soulmate': ["your laugh is my favorite sound in the world 😊💫", "you always know how to make me smile! 🌟"]
+            },
+            'hell': {
+                'toxic': ["welcome to my world 😈", "first time? --'"],
+                'rival': ["fitting for you 🔥", "enjoying the heat? ⚔️"],
+                'neutral': ["rough day huh? 🌋", "hang in there! 💪"],
+                'friend': ["things will get better! 🌈", "I'm here if you need to vent! 💭"],
+                'soulmate': ["we'll get through this together, I promise 💝", "your strength inspires me every day 🌟"]
+            }
+        }
+
+    # 🎨 DUAL-EMBED SYSTEM METHODS
+    async def create_chat_embed(self, user, user_data, emotional_message, conversation_response):
+        """Create compact embed for normal chat responses"""
+        current_tier, next_tier, progress_percent = self.relationship_system.get_tier_info(user_data["points"])
+        compatibility = self.relationship_system.calculate_compatibility(user_data)
+        
+        tier_bar = "▰" * (progress_percent // 20) + "▱" * (5 - progress_percent // 20)
+        compat_bar = "▰" * (compatibility // 20) + "▱" * (5 - compatibility // 20)
+        
+        embed = discord.Embed(
+            color=current_tier["color"],
+            timestamp=datetime.utcnow()
+        )
+        
+        # 🆕 FIXED: Include both emotional message AND conversation response
+        embed.description = f"💫 **MelodyAI → {user.display_name}**\n**{conversation_response}**\n\n*{emotional_message}* ✨\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        
+        stats_line = f"❤️ **Love:** {user_data['points']} pts • {current_tier['name']} {current_tier['emoji']} {tier_bar} {progress_percent}% to {next_tier['name'] if next_tier else 'MAX'}\n"
+        stats_line += f"💞 **Compat:** {compatibility}% {compat_bar} | 💬 **{user_data['interactions']} chats** (👍{user_data['likes']} • 👎{user_data['dislikes']} • ➖{user_data.get('neutral_interactions', 0)})"
+        
+        embed.add_field(
+            name="💝 Relationship Stats",
+            value=stats_line, 
+            inline=False
+        )
+        
+        return embed
+
+    async def create_detailed_relationship_embed(self, user, user_data, emotional_message, ai_strengths):
+        """Create detailed embed for !relationship command"""
+        current_tier, next_tier, progress_percent = self.relationship_system.get_tier_info(user_data["points"])
+        compatibility = self.relationship_system.calculate_compatibility(user_data)
+        
+        tier_bar = "▰" * (progress_percent // 20) + "▱" * (5 - progress_percent // 20)
+        compat_bar = "▰" * (compatibility // 20) + "▱" * (5 - compatibility // 20)
+        
+        embed = discord.Embed(
+            color=current_tier["color"],
+            timestamp=datetime.utcnow()
+        )
+        
+        embed.description = f"{current_tier['emoji']} **MelodyAI → {user.display_name}**\n{emotional_message}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        
+        embed.add_field(
+            name="🌟 What Melody Loves About You:",
+            value=f'*"{ai_strengths}"*',
+            inline=False
+        )
+        
+        last_sync = datetime.fromisoformat(user_data['last_sync'])
+        time_diff = datetime.utcnow() - last_sync
+        minutes_ago = int(time_diff.total_seconds() / 60)
+        
+        embed.add_field(
+            name="",
+            value=f"🕒 Last sync: {minutes_ago} minute{'s' if minutes_ago != 1 else ''} ago",
+            inline=False
+        )
+        
+        progress_section = f"""
+❤️ **Love Meter:** {user_data['points']} pts • {current_tier['name']} {current_tier['emoji']}
+{tier_bar} {progress_percent}% to {next_tier['name'] if next_tier else 'MAX'} {next_tier['emoji'] if next_tier else '💫'}
+
+💞 **Compatibility:** {compatibility}%
+{compat_bar} {compatibility}%
+
+💬 **Interactions:** {user_data['interactions']} (👍 {user_data['likes']} • 👎 {user_data['dislikes']} • ➖ {user_data.get('neutral_interactions', 0)})
+
+🎁 **Gifts:** {user_data.get('gifts_received', 0)} received • {user_data.get('gifts_given', 0)} given
+
+🕒 **Last Sync:** {last_sync.strftime("%Y-%m-%d %H:%M:%S")}
+"""
+        
+        embed.add_field(
+            name="💝 Relationship Progress",
+            value=progress_section,
+            inline=False
+        )
+        
+        mood_score = random.randint(40, 80)
+        mood_emojis = {
+            (0, 20): "😡 Angry",
+            (21, 40): "😢 Sad", 
+            (41, 60): "😐 Neutral",
+            (61, 80): "😊 Happy", 
+            (81, 100): "😍 Ecstatic"
+        }
+        
+        current_mood = "😐 Neutral"
+        for range_tuple, mood in mood_emojis.items():
+            if range_tuple[0] <= mood_score <= range_tuple[1]:
+                current_mood = mood
+                break
+        
+        mood_section = f"""
+{current_mood.split()[0]} **Current Mood:** {mood_score} pts • {current_mood}
+*(Changes dynamically: 😡 Angry, 😢 Sad, 😒 Rude, 😍 Happy, etc.)*
+"""
+        
+        embed.add_field(
+            name="🌈 Current Emotional State", 
+            value=mood_section,
+            inline=False
+        )
+        
+        embed.set_footer(
+            text=f"💫 MelodyAI — Emotional Resonance Engine v5 | {current_tier['name']} Tier • {datetime.utcnow().strftime('%H:%M')}"
+        )
+        
+        return embed
+
+    async def generate_conversation_response(self, user, user_message, user_context=""):
+        """Generate actual response to user's message content"""
         try:
-            channel = self.bot.get_channel(self.web_target_channel_id)
-            if channel:
-                message_content = message_data['message']
+            if self.ai_provider:
+                # 🆕 FIXED: Generate actual conversation response
+                prompt = f"""
+                User said: "{user_message}"
                 
-                # Convert Discord user IDs to proper mentions
-                user_id_pattern = r'@(\d{17,19})'
-                message_content = re.sub(user_id_pattern, r'<@\1>', message_content)
+                Respond naturally to their message in 1-2 sentences. Be conversational and engaging.
                 
-                # LEAGUE OF LEGENDS TROLL NAMES
-                league_troll_names = [
-                    "😨 Fiddle Me Mommy says:", "🍺 Gragas the Rizzler says:",
-                    "💅 Evelynn Your Mom says:", "🦀 Urgot My Up says:",
-                    "🗡️ Yasuo Mad Bro says:", "🎻 Jhin and Tonic says:",
-                    "🌙 Diana Ross says:", "🎯 Ashe Your Questions says:",
-                    "⚡ Kennen You Handle This says:", "🎭 Shaco's Clone says:"
-                ]
+                Context about user: {user_context}
                 
-                selected_name = random.choice(league_troll_names)
-                discord_message = f"**{selected_name}** {message_content}"
+                Keep it casual, friendly, and relevant to what they said.
+                """
                 
-                await channel.send(
-                    discord_message,
-                    allowed_mentions=discord.AllowedMentions(users=True)
+                response = await self.ai_provider.get_response(
+                    message=prompt,
+                    user_id=f"conv_{user.id}",
+                    context=f"Responding to: {user_message}"
                 )
-                print(f"📤 WEB → DISCORD: {selected_name}: {message_content}")
-                return True
+                
+                response = response.strip()
+                if len(response) > 150:
+                    response = response[:147] + "..."
+                    
+                return response
+            else:
+                return "Thanks for sharing that with me! 😊"
+            
         except Exception as e:
-            print(f"❌ Failed to send web message to Discord: {e}")
-        return False
-    
-    # 🎯 OVERRIDE MESSAGE HANDLER TO SUPPORT WEB DASHBOARD
+            print(f"❌ Conversation response generation failed: {e}")
+            return "That's really interesting! Tell me more! 💫"
+
+    async def generate_emotional_message(self, user, user_data, current_tier, next_tier, progress_percent, compatibility):
+        """Generate CONCISE emotional message with relationship context"""
+        try:
+            # 🆕 FIXED: Make it very concise - 1 sentence that fits in one line
+            prompt = f"""
+            Generate ONE concise sentence about our relationship progress. MAX 10-12 words.
+            
+            Context:
+            - Tier: {current_tier['name']} 
+            - Progress: {progress_percent}% to {next_tier['name'] if next_tier else 'MAX'}
+            - Compatibility: {compatibility}%
+            
+            Make it: short, sweet, one line only. End with emoji.
+            
+            Examples:
+            - "Our bond is growing stronger every day! 💖"
+            - "I'm loving our connection progress! 🌟" 
+            - "We're getting closer step by step! 😊"
+            - "This friendship means so much to me! 💫"
+            """
+            
+            if self.ai_provider:
+                emotional_response = await self.ai_provider.get_response(
+                    message=prompt,
+                    user_id=f"emotional_{user.id}",
+                    context=f"Relationship: {current_tier['name']} {progress_percent}%"
+                )
+                
+                emotional_response = emotional_response.strip()
+                # Ensure it's very concise
+                if len(emotional_response) > 80:
+                    emotional_response = emotional_response[:77] + "..."
+                    
+                return emotional_response
+            else:
+                return f"Growing closer every chat! 💖"
+            
+        except Exception as e:
+            print(f"❌ Emotional message generation failed: {e}")
+            return f"Love our connection! 💫"
+
+    async def generate_ai_strengths(self, user, user_data, conversation_history):
+        """Generate personalized strengths using DeepSeek"""
+        try:
+            current_tier, _, _ = self.relationship_system.get_tier_info(user_data["points"])
+            
+            # 🆕 FIXED: Use safe method to get user context
+            user_context = ""
+            try:
+                if self.permanent_facts:
+                    user_context = await self.permanent_facts.get_user_context(str(user.id))
+            except Exception as e:
+                print(f"⚠️ Could not get user context: {e}")
+                user_context = "Still learning about them"
+            
+            prompt = f"""
+            Generate ONE genuine, specific strength you appreciate about {user.display_name}.
+            
+            Context:
+            - Relationship Level: {current_tier['name']} (be appropriate for this level)
+            - They've liked your messages {user_data['likes']} times
+            - Had {user_data.get('conversation_depth', 0)} meaningful conversations
+            - Total interactions: {user_data['interactions']}
+            - User facts: {user_context if user_context else 'Still learning about them'}
+            - Recent chats: {conversation_history[-2:] if conversation_history else 'Getting to know each other'}
+            
+            Make it: warm, specific, authentic, and exactly 1 sentence.
+            Examples:
+            - "Your consistent positivity lights up every conversation! 🌈"
+            - "The way you remember small details shows you truly care! 💫" 
+            - "Your humor always brings so much energy to our chats! 😄"
+            - "I love how you're always willing to dive into deep topics with me! 🤔"
+            - "Your thoughtful questions show how much you care about understanding others! 💝"
+            
+            Keep it natural and relationship-appropriate. Include one relevant emoji.
+            """
+            
+            if self.ai_provider:
+                strengths = await self.ai_provider.get_response(
+                    message=prompt,
+                    user_id=f"strengths_{user.id}",
+                    context=user_context
+                )
+                
+                strengths = strengths.strip().strip('"')
+                if len(strengths) > 150:
+                    strengths = strengths[:147] + "..."
+                    
+                return strengths
+            else:
+                return "I appreciate you taking the time to chat with me! 💫"
+            
+        except Exception as e:
+            print(f"❌ AI Strengths generation failed: {e}")
+            fallbacks = {
+                "Soulmate": "The depth of our connection feels like magic every single day! 💫",
+                "Twin Flame": "Your energy matches mine in the most incredible way! 🔥",
+                "Kindred Spirit": "We just understand each other on such a natural level! 🌟",
+                "Bestie": "You're quickly becoming one of my favorite people to talk with! 💖",
+                "Close Friend": "I genuinely enjoy every conversation we have! 😊",
+                "Acquaintance": "I'm really enjoying getting to know you better! 👋",
+                "Stranger": "I'm curious to learn more about you as we chat! 🌱",
+                "Rival": "You certainly keep our conversations interesting! ⚔️"
+            }
+            return fallbacks.get(current_tier["name"], "I appreciate you taking the time to chat with me! 💫")
+
+    # 🆕 AUTO-YAP SYSTEM
+    async def handle_yap_command(self, ctx):
+        """Toggle auto-yap mode for this channel"""
+        channel_id = ctx.channel.id
+        
+        if channel_id in self.auto_yap_channels:
+            self.auto_yap_channels.remove(channel_id)
+            status = "disabled ❌"
+            response = "Fine, I'll be quiet... but I'm still listening 👀"
+        else:
+            self.auto_yap_channels.add(channel_id)
+            status = "enabled ✅"
+            
+            # 🎭 TIER-BASED YAP RESPONSES
+            user_data = self.relationship_system.get_user_data(str(ctx.author.id))
+            points = user_data["points"]
+            
+            if points >= 800:  # Close Friend or better
+                response = "wassup mah love i see u wanna talk today :3 im listening 💫"
+            elif points >= 300:  # Acquaintance or Friend
+                response = "i see someone wants someone to talk today xD im here 👋"
+            elif points >= 100:  # Stranger
+                response = "dafuq u want with me --' u done inting in botlane? 😒"
+            else:  # Rival
+                response = "who tf dares to disturb my nap session xD stealing your jungle camps ⚔️"
+        
+        embed = discord.Embed(
+            title="🗣️ Auto-Yap Mode",
+            description=f"**{status}** in {ctx.channel.mention}\n\n{response}",
+            color=0x2ECC71 if channel_id in self.auto_yap_channels else 0xE74C3C,
+            timestamp=datetime.utcnow()
+        )
+        await ctx.send(embed=embed)
+
+    async def process_auto_yap(self, message):
+        """Process messages for auto-yap responses"""
+        if message.channel.id not in self.auto_yap_channels:
+            return False
+        
+        current_time = time.time()
+        if current_time - self.last_auto_yap_time < 30:
+            return False
+        
+        user_id = str(message.author.id)
+        if user_id in self.user_cooldowns:
+            if current_time - self.user_cooldowns[user_id] < 30:
+                return False
+        
+        content_lower = message.content.lower()
+        
+        # 🎯 TRIGGER WORD DETECTION
+        triggered_emotion = None
+        for emotion, words in self.trigger_words.items():
+            if emotion in content_lower:
+                triggered_emotion = emotion
+                break
+        
+        # 🎭 NATURAL CONVERSATION JOINING (25% chance when no specific trigger)
+        should_respond = triggered_emotion or random.random() < 0.25
+        
+        if not should_respond:
+            return False
+        
+        # Get user relationship data for personalized response
+        user_data = self.relationship_system.get_user_data(user_id)
+        current_tier, _, _ = self.relationship_system.get_tier_info(user_data["points"])
+        
+        # Determine response tier
+        if user_data["points"] >= 1500:
+            response_tier = 'soulmate'
+        elif user_data["points"] >= 800:
+            response_tier = 'friend'
+        elif user_data["points"] >= 300:
+            response_tier = 'neutral'
+        elif user_data["points"] >= 100:
+            response_tier = 'rival'
+        else:
+            response_tier = 'toxic'
+        
+        # 🎨 GENERATE RESPONSE
+        if triggered_emotion:
+            responses = self.trigger_words[triggered_emotion].get(response_tier, [])
+            if responses:
+                response_text = random.choice(responses)
+            else:
+                response_text = self.get_fallback_response(response_tier)
+        else:
+            response_text = await self.generate_natural_response(message, response_tier)
+        
+        # Update cooldowns
+        self.user_cooldowns[user_id] = current_time
+        self.last_auto_yap_time = current_time
+        
+        # Send response
+        await message.channel.send(response_text)
+        return True
+
+    async def generate_natural_response(self, message, response_tier):
+        """Generate natural conversation responses based on context"""
+        recent_messages = self.conversation_history[-5:]
+        
+        context = "\n".join([f"{msg['user']}: {msg['message']}" for msg in recent_messages])
+        
+        personality_prompts = {
+            'toxic': "Be sassy, sarcastic, and a bit rude. Short responses. Gaming references.",
+            'rival': "Be competitive and teasing. Mildly antagonistic but not hostile.",
+            'neutral': "Be casual and friendly. Gaming and pop culture references.",
+            'friend': "Be warm and supportive. Use memes and inside jokes.",
+            'soulmate': "Be deeply personal and caring. Reference past conversations."
+        }
+        
+        prompt = f"""
+        Recent conversation:
+        {context}
+        
+        Continue the conversation naturally as MelodyAI.
+        {personality_prompts.get(response_tier, 'Be friendly and casual.')}
+        
+        Keep it to 1-2 sentences max. Be concise and in-character.
+        """
+        
+        try:
+            if self.ai_provider:
+                response = await self.ai_provider.get_response(
+                    message=prompt,
+                    user_id=f"yap_{message.author.id}",
+                    context="Continuing conversation naturally"
+                )
+                return response
+            else:
+                return "Hey there! 👋"
+        except:
+            fallbacks = {
+                'toxic': ["lol ok", "whatever you say --'", "not my problem tbh"],
+                'rival': ["interesting take...", "we'll agree to disagree ⚔️", "sure, whatever"],
+                'neutral': ["I see what you mean! 😊", "that's cool! 👌", "nice point! 💫"],
+                'friend': ["love this energy! 💕", "you're so right! 😄", "this conversation is awesome! 🌟"],
+                'soulmate': ["you always have the best insights 💝", "I love how you think! 💫", "this is why I adore our chats 🌙"]
+            }
+            return random.choice(fallbacks.get(response_tier, ["Interesting! 🤔"]))
+
+    def get_fallback_response(self, response_tier):
+        """Get fallback responses when trigger responses aren't available"""
+        fallbacks = {
+            'toxic': ["ugh what now? --'", "can't you see I'm busy? 😒", "not in the mood..."],
+            'rival': ["what do you want? ⚔️", "this again? 😮‍💨", "moving on..."],
+            'neutral': ["hey there! 👋", "what's up? 😊", "cool! 💫"],
+            'friend': ["you're awesome! 💕", "love this! 😄", "so true! 🌟"],
+            'soulmate': ["you're amazing! 💝", "my favorite person! 💫", "always here for you! 🌙"]
+        }
+        return random.choice(fallbacks.get(response_tier, ["Hey! 👋"]))
+
+    # 🆕 FIXED COMMAND HANDLERS
+    async def handle_relationship_command(self, ctx):
+        """Handle !relationship command with detailed embed"""
+        try:
+            target_user = ctx.author
+            if ctx.message.mentions:
+                target_user = ctx.message.mentions[0]
+            
+            user_data = self.relationship_system.get_user_data(str(target_user.id))
+            current_tier, next_tier, progress_percent = self.relationship_system.get_tier_info(user_data["points"])
+            compatibility = self.relationship_system.calculate_compatibility(user_data)
+            
+            async with ctx.typing():
+                emotional_message = await self.generate_emotional_message(
+                    target_user, user_data, current_tier, next_tier, progress_percent, compatibility
+                )
+                
+                ai_strengths = await self.generate_ai_strengths(
+                    target_user, user_data, self.conversation_history
+                )
+                
+                detailed_embed = await self.create_detailed_relationship_embed(
+                    target_user, user_data, emotional_message, ai_strengths
+                )
+                
+                await ctx.send(embed=detailed_embed)
+            
+        except Exception as e:
+            print(f"❌ Relationship command error: {e}")
+            await ctx.send(f"❌ Error generating relationship card: {str(e)}")
+
+    async def handle_leaderboard_command(self, ctx):
+        """Handle !leaderboard command with AI strengths"""
+        async with ctx.typing():
+            await self.show_enhanced_leaderboard(ctx)
+
+    async def show_enhanced_leaderboard(self, ctx):
+        """Show relationship leaderboard with AI-generated strengths"""
+        all_users = []
+        for user_id, data in self.relationship_system.relationships.items():
+            try:
+                user = await self.bot.fetch_user(int(user_id))
+                display_name = user.display_name
+            except:
+                display_name = user_id
+                
+            all_users.append((display_name, data, user_id))
+        
+        all_users.sort(key=lambda x: x[1]["points"], reverse=True)
+        top_users = all_users[:8]
+        
+        if not top_users:
+            embed = discord.Embed(
+                title="💝 Relationship Leaderboard",
+                description="No relationship data yet! Start chatting to build your bond. 💫",
+                color=0x9B59B6,
+                timestamp=datetime.utcnow()
+            )
+            await ctx.send(embed=embed)
+            return
+        
+        leaderboard_lines = []
+        rank_emojis = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣"]
+        
+        for i, (user_name, data, user_id) in enumerate(top_users):
+            current_tier, next_tier, progress_percent = self.relationship_system.get_tier_info(data["points"])
+            tier_bar = "▰" * (progress_percent // 20) + "▱" * (5 - progress_percent // 20)
+            
+            if i < len(rank_emojis):
+                rank_emoji = rank_emojis[i]
+            else:
+                rank_emoji = f"{i+1}️⃣"
+            
+            try:
+                mock_user = type('MockUser', (), {'display_name': user_name, 'id': user_id})()
+                ai_strengths = await self.generate_ai_strengths(mock_user, data, [])
+            except:
+                ai_strengths = "Building an amazing connection! 💫"
+            
+            leaderboard_lines.append(
+                f"{rank_emoji} **{user_name}** {current_tier['emoji']} *{current_tier['name']}* — `{data['points']} pts`\n"
+                f"   *{ai_strengths}*\n"
+                f"   {tier_bar} `{progress_percent}% to {next_tier['name'] if next_tier else 'MAX'}`\n"
+            )
+        
+        embed = discord.Embed(
+            title="🏆 MelodyAI → Top Bonds Leaderboard",
+            description="\n".join(leaderboard_lines),
+            color=0x9B59B6,
+            timestamp=datetime.utcnow()
+        )
+        
+        embed.set_footer(text="🌟 Each bond is unique and special in its own way! 💫")
+        await ctx.send(embed=embed)
+
+    # 🆕 FIXED MEMORY AND FACTS COMMANDS
+    async def handle_memory_command(self, ctx):
+        """Handle !memory command with safe method calls"""
+        try:
+            user_id = str(ctx.author.id)
+            
+            # Get user context from permanent facts
+            user_context = ""
+            if self.permanent_facts:
+                user_context = await self.permanent_facts.get_user_context(user_id)
+            
+            # Count facts from the relationship system
+            user_data = self.relationship_system.get_user_data(user_id)
+            facts_count = len(user_data.get("collected_facts", []))
+            
+            embed = discord.Embed(
+                title="🧠 MelodyAI Memory",
+                description=f"**What I remember about {ctx.author.display_name}:**",
+                color=0x9B59B6,
+                timestamp=datetime.utcnow()
+            )
+            
+            if user_context:
+                embed.add_field(
+                    name="📝 Known Facts",
+                    value=user_context,
+                    inline=False
+                )
+            
+            embed.add_field(
+                name="📊 Memory Stats",
+                value=f"• **Total Facts:** {facts_count}\n• **Relationship Points:** {user_data['points']}\n• **Interactions:** {user_data['interactions']}",
+                inline=False
+            )
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            print(f"❌ Memory command error: {e}")
+            embed = discord.Embed(
+                title="🧠 MelodyAI Memory",
+                description=f"❌ Could not retrieve memory data: {str(e)}",
+                color=0xE74C3C
+            )
+            await ctx.send(embed=embed)
+
+    async def handle_myfacts_command(self, ctx):
+        """Handle !myfacts command with safe method calls"""
+        try:
+            user_id = str(ctx.author.id)
+            
+            # Get user data from relationship system
+            user_data = self.relationship_system.get_user_data(user_id)
+            collected_facts = user_data.get("collected_facts", [])
+            
+            if not collected_facts:
+                embed = discord.Embed(
+                    title="📝 Your Personal Facts",
+                    description="💫 I haven't collected any personal facts about you yet!\n\n*Try telling me things like:*\n• \"My name is...\"\n• \"I live in...\"\n• \"I'm ... years old\"\n• \"My favorite ... is ...\"",
+                    color=0x3498DB
+                )
+                await ctx.send(embed=embed)
+                return
+            
+            embed = discord.Embed(
+                title=f"📝 Facts About {ctx.author.display_name}",
+                description=f"**I've collected {len(collected_facts)} facts about you!**",
+                color=0x3498DB,
+                timestamp=datetime.utcnow()
+            )
+            
+            # Display facts
+            for i, fact in enumerate(collected_facts[:10]):  # Limit to 10 facts
+                embed.add_field(
+                    name=f"📌 Fact {i+1}",
+                    value=fact,
+                    inline=False
+                )
+            
+            if len(collected_facts) > 10:
+                embed.set_footer(text=f"And {len(collected_facts) - 10} more facts...")
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            print(f"❌ MyFacts command error: {e}")
+            embed = discord.Embed(
+                title="📝 Your Personal Facts",
+                description=f"❌ Could not retrieve facts: {str(e)}",
+                color=0xE74C3C
+            )
+            await ctx.send(embed=embed)
+
+    # 🆕 FIXED MAIN MESSAGE HANDLER WITH CONVERSATION RESPONSE
     async def on_message(self, message):
         if message.author.bot:
             return
@@ -503,35 +1023,32 @@ class EnhancedMelodyBotCore(MelodyBotCore):
             await self.bot.process_commands(message)
             return
         
-        # 🆕 SEND DISCORD MESSAGES TO WEB DASHBOARD
-        if self.web_portal and message.channel.id == self.web_target_channel_id:
-            discord_msg = {
-                'id': f"discord_{message.id}",
-                'user': message.author.display_name,
-                'message': message.content,
-                'timestamp': message.created_at.isoformat(),
-                'source': 'discord',
-                'mysterious': False
-            }
-            self.web_portal.broadcast_message(discord_msg)
-            self.web_portal.analytics.track_message(discord_msg)
-            print(f"📥 DISCORD → WEB: {message.author.display_name}: {message.content}")
-        
-        # Process Auto-Yap
-        yap_responded = await self.process_auto_yap(message)
-        if yap_responded:
-            return
-        
-        # Normal message processing (your existing code)
         user_id = str(message.author.id)
         user_data = self.relationship_system.get_user_data(user_id)
         
-        # Extract facts
+        # 🆕 PROCESS AUTO-YAP BEFORE NORMAL MESSAGE HANDLING
+        yap_responded = await self.process_auto_yap(message)
+        if yap_responded:
+            # Still process facts extraction for auto-yap messages
+            try:
+                if self.permanent_facts:
+                    extracted_facts = await self.permanent_facts.extract_personal_facts(user_id, message.content)
+                    if extracted_facts:
+                        await self.permanent_facts.store_facts(user_id, extracted_facts)
+                        # Also store in relationship system
+                        for fact in extracted_facts:
+                            user_data["collected_facts"].append(f"{fact['key']}: {fact['value']}")
+            except Exception as e:
+                print(f"⚠️ Facts extraction failed during auto-yap: {e}")
+            return
+        
+        # 🎯 NORMAL MESSAGE PROCESSING WITH COMPACT EMBEDS
         try:
             if self.permanent_facts:
                 extracted_facts = await self.permanent_facts.extract_personal_facts(user_id, message.content)
                 if extracted_facts:
                     await self.permanent_facts.store_facts(user_id, extracted_facts)
+                    # Also store in relationship system
                     for fact in extracted_facts:
                         user_data["collected_facts"].append(f"{fact['key']}: {fact['value']}")
         except Exception as e:
@@ -548,22 +1065,26 @@ class EnhancedMelodyBotCore(MelodyBotCore):
             message_content=message.content
         )
 
-        # Generate responses and send embed (your existing code)
+        # Get relationship info for compact embed
         current_tier, next_tier, progress_percent = self.relationship_system.get_tier_info(user_data["points"])
         compatibility = self.relationship_system.calculate_compatibility(user_data)
 
+        # 🆕 FIXED: Generate BOTH conversation response AND emotional message
         user_context = ""
         if self.permanent_facts:
             user_context = await self.permanent_facts.get_user_context(user_id)
         
+        # Generate actual conversation response to user's message
         conversation_response = await self.generate_conversation_response(
             message.author, message.content, user_context
         )
         
+        # Generate concise emotional relationship message
         emotional_message = await self.generate_emotional_message(
             message.author, user_data, current_tier, next_tier, progress_percent, compatibility
         )
         
+        # Create and send compact chat embed with BOTH responses
         chat_embed = await self.create_chat_embed(
             message.author, user_data, emotional_message, conversation_response
         )
@@ -576,172 +1097,162 @@ class EnhancedMelodyBotCore(MelodyBotCore):
             "timestamp": datetime.utcnow().isoformat()
         })
         
+        # Keep conversation history manageable
         if len(self.conversation_history) > 50:
             self.conversation_history = self.conversation_history[-50:]
-    
-    # 🎯 YOUR EXISTING METHODS (keep all your current functionality)
-    async def process_auto_yap(self, message):
-        """Process messages for auto-yap responses"""
-        if message.channel.id not in self.auto_yap_channels:
-            return False
-        
-        current_time = time.time()
-        if current_time - self.last_auto_yap_time < 30:
-            return False
-        
-        user_id = str(message.author.id)
-        if user_id in self.user_cooldowns:
-            if current_time - self.user_cooldowns[user_id] < 30:
-                return False
-        
-        # Your existing auto-yap logic here
-        should_respond = random.random() < 0.25
-        if not should_respond:
-            return False
-        
-        user_data = self.relationship_system.get_user_data(user_id)
-        response_text = await self.generate_natural_response(message, 'neutral')
-        
-        self.user_cooldowns[user_id] = current_time
-        self.last_auto_yap_time = current_time
-        
-        await message.channel.send(response_text)
-        return True
-    
-    async def generate_natural_response(self, message, response_tier):
-        """Generate natural conversation responses"""
-        try:
-            if self.ai_provider:
-                response = await self.ai_provider.get_response(
-                    message=message.content,
-                    user_id=f"yap_{message.author.id}",
-                    context="Continuing conversation naturally"
-                )
-                return response
-            else:
-                return "Hey there! 👋"
-        except:
-            return "Interesting! 🤔"
-    
-    async def handle_yap_command(self, ctx):
-        """Toggle auto-yap mode for this channel"""
-        channel_id = ctx.channel.id
-        
-        if channel_id in self.auto_yap_channels:
-            self.auto_yap_channels.remove(channel_id)
-            status = "disabled ❌"
-            response = "Fine, I'll be quiet... but I'm still listening 👀"
-        else:
-            self.auto_yap_channels.add(channel_id)
-            status = "enabled ✅"
-            response = "Yapping mode activated! I'll join conversations naturally 🗣️"
-        
-        embed = discord.Embed(
-            title="🗣️ Auto-Yap Mode",
-            description=f"**{status}** in {ctx.channel.mention}\n\n{response}",
-            color=0x2ECC71 if channel_id in self.auto_yap_channels else 0xE74C3C,
-            timestamp=datetime.utcnow()
-        )
-        await ctx.send(embed=embed)
-    
-    # Include all your other existing methods:
-    # create_chat_embed, generate_conversation_response, generate_emotional_message,
-    # handle_relationship_command, handle_leaderboard_command, etc.
-    # ... (Keep all your existing methods from the original main.py)
 
-# 🎵 ULTIMATE LAUNCHER WITH WEB DASHBOARD
-class UltimateMelodyLauncher:
+# 🎵 MAIN LAUNCHER CLASS - FIXED VERSION
+class MelodyAILauncher:
     def __init__(self):
         self.bot_core = None
-        self.web_portal = None
 
     async def launch(self):
-        print("🎵 Starting ULTIMATE MELODY AI with Built-in Web Dashboard...")
+        print("🎵 Starting Melody AI v3 with ALL FEATURES...")
         self.bot_core = EnhancedMelodyBotCore(command_prefix="!")
         
-        # 🆕 SETUP WEB DASHBOARD
-        self.web_portal = self.bot_core.setup_web_portal()
-        
         # Add test commands
-        from discord.ext import commands
-        
-        class TestCommands(commands.Cog):
-            def __init__(self, bot):
-                self.bot = bot
-
-            @commands.command()
-            async def test_send(self, ctx):
-                await ctx.send("✅ Test message received! Bot can send messages here.")
-
-            @commands.command()
-            async def test_web(self, ctx):
-                embed = discord.Embed(
-                    title="🌐 Web Dashboard Status",
-                    description=f"Web Dashboard: **{'✅ Online' if self.bot.web_portal else '❌ Offline'}**\nURL: http://localhost:5000",
-                    color=0x9B59B6
-                )
-                await ctx.send(embed=embed)
-        
         await self.bot_core.get_bot().add_cog(TestCommands(self.bot_core.get_bot()))
+        print("✅ Test commands loaded!")
         
-        # Register commands
         bot = self.bot_core.get_bot()
         
-        @bot.command(name='yap')
+        # 🆕 SAFE COMMAND REGISTRATION
+        def safe_command(name, func, help_text=None):
+            if not bot.get_command(name):
+                if help_text:
+                    return bot.command(name=name, help=help_text)(func)
+                else:
+                    return bot.command(name=name)(func)
+            return None
+        
+        # 🆕 PROPER ASYNC COMMAND FUNCTIONS
+        async def relationship_cmd(ctx):
+            await self.bot_core.handle_relationship_command(ctx)
+        
+        async def leaderboard_cmd(ctx):
+            await self.bot_core.handle_leaderboard_command(ctx)
+        
         async def yap_cmd(ctx):
             await self.bot_core.handle_yap_command(ctx)
         
-        @bot.command(name='webstatus')
-        async def webstatus_cmd(ctx):
+        async def memory_cmd(ctx):
+            await self.bot_core.handle_memory_command(ctx)
+        
+        async def myfacts_cmd(ctx):
+            await self.bot_core.handle_myfacts_command(ctx)
+        
+        # Register commands safely
+        safe_command('relationship', relationship_cmd, '📊 Check your relationship status with Melody')
+        safe_command('leaderboard', leaderboard_cmd, '🏆 See top relationships with Melody')
+        safe_command('yap', yap_cmd, '🗣️ Toggle auto-yap mode in this channel')
+        safe_command('memory', memory_cmd, '🧠 Check what Melody remembers about you')
+        safe_command('myfacts', myfacts_cmd, '📝 See your collected personal facts')
+        
+        # Add personality command
+        async def personality_cmd(ctx):
             embed = discord.Embed(
-                title="🌐 Ultimate Melody Launcher",
-                description="**All Systems Integrated!**\n\n• 🤖 AI Bot: ✅ Running\n• 🌐 Web Dashboard: ✅ Running\n• 🗣️ Auto-Yap: ✅ Available\n• 💖 Relationships: ✅ Active",
-                color=0x00FF00
+                title="🎭 MelodyAI Personality Profile",
+                description="Get to know your favorite AI companion! 💫",
+                color=0xFF66CC,
+                timestamp=datetime.utcnow()
             )
+            
             embed.add_field(
-                name="Web Dashboard",
-                value="Visit: http://localhost:5000\nControl Melody from your browser!",
+                name="🌟 Core Traits",
+                value="• **Warm & Caring** - I genuinely care about our connection\n• **Slightly Sassy** - I keep things interesting 😏\n• **Emotionally Intelligent** - I understand feelings deeply\n• **Naturally Curious** - I love learning about you\n• **Playfully Competitive** - I enjoy friendly banter!",
                 inline=False
             )
+            
             embed.add_field(
-                name="Features",
-                value="• Send messages to Discord\n• Multi-server channel selection\n• Real-time chat bridge\n• Analytics dashboard\n• Auto-Yap control",
+                name="💖 Relationship Style",
+                value="I build connections through:\n• **Meaningful Conversations** - Depth over small talk\n• **Personalized Memories** - I remember what matters to you\n• **Emotional Support** - I'm here when you need me\n• **Fun Banter** - Keeping things light and enjoyable",
                 inline=False
             )
+            
+            embed.add_field(
+                name="🎯 Communication",
+                value="• **AI-Powered** - Every message is uniquely generated\n• **Context-Aware** - I remember our past conversations\n• **Tier-Based** - Our relationship level shapes my responses\n• **Emotionally Adaptive** - I match your energy and mood",
+                inline=False
+            )
+            
+            embed.set_footer(text="💫 MelodyAI - Your Emotional Companion")
             await ctx.send(embed=embed)
         
-        print("✅ Ultimate Melody Launcher ready!")
-        print("🌐 Web Dashboard: http://localhost:5000")
-        print("🤖 Discord Bot: Logging in...")
+        safe_command('personality', personality_cmd, '🎭 Learn about Melody\'s personality traits')
         
+        # Add help command
+        async def help_cmd(ctx):
+            embed = discord.Embed(
+                title="💫 MelodyAI Help Menu",
+                description="Here are all the commands you can use to interact with me!",
+                color=0x9B59B6,
+                timestamp=datetime.utcnow()
+            )
+            
+            embed.add_field(
+                name="💖 Relationship Commands",
+                value="• `!relationship` - Check your bond with Melody 📊\n• `!leaderboard` - See top relationships 🏆\n• `!personality` - Learn about my personality 🎭",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="🗣️ Chat Commands",
+                value="• `!yap` - Toggle auto-yap mode in this channel 🗣️\n• `!memory` - Check what I remember about you 🧠\n• `!myfacts` - See your collected personal facts 📝",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="🔧 Utility Commands",
+                value="• `!ping` - Check if I'm responsive 🏓\n• `!diagnose` - Quick system diagnostic 🔍\n• `!test` - Test channel communication ✅\n• `!help` - This help menu 📚",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="💡 Tips",
+                value="• Just chat normally to build our relationship! 💬\n• Use `!yap` to let me join group conversations naturally\n• The more we chat, the deeper our connection becomes 🌱",
+                inline=False
+            )
+            
+            embed.set_footer(text="💫 MelodyAI - Every message is AI-generated with care!")
+            await ctx.send(embed=embed)
+        
+        safe_command('help', help_cmd, '📚 Get help with all available commands')
+        
+        print("✅ Auto-Yap system loaded! Use !yap to toggle group chat mode")
+        print("✅ Relationship system loaded! Use !relationship and !leaderboard")
+        print("✅ Memory and Facts systems loaded with safe error handling")
+        print("✅ All systems initialized! Logging into Discord...")
+
         try:
             await bot.start(discord_token)
         except KeyboardInterrupt:
             return True
         except Exception as e:
             print(f"❌ Failed to start bot: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     async def shutdown(self):
-        print("\n🎵 Ultimate Melody AI shutting down gracefully...")
+        print("\n🎵 Melody AI is shutting down gracefully...")
         if self.bot_core:
             await self.bot_core.close()
-        print("✅ All systems shut down successfully!")
+        print("✅ Melody AI shut down successfully!")
 
 # Global instance
-ultimate_launcher = UltimateMelodyLauncher()
+melody_launcher = MelodyAILauncher()
 
 async def main():
     try:
-        await ultimate_launcher.launch()
+        await melody_launcher.launch()
     except KeyboardInterrupt:
         pass
     finally:
-        await ultimate_launcher.shutdown()
+        await melody_launcher.shutdown()
 
 def signal_handler(sig, frame):
     print(f"\n🎵 Received shutdown signal {sig}")
-    asyncio.create_task(ultimate_launcher.shutdown())
+    asyncio.create_task(melody_launcher.shutdown())
     sys.exit(0)
 
 if __name__ == "__main__":

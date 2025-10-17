@@ -1,4 +1,5 @@
-# analytics.py - Enhanced Analytics with Backward Compatibility
+# REPLACE YOUR backend/analytics.py WITH THIS ENHANCED VERSION:
+
 import time
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
@@ -15,6 +16,7 @@ class EnhancedAnalytics:
             'last_seen': None,
             'emotional_trend': [],
             'relationship_score': 50,
+            'engagement_level': 'neutral'
         })
         self.start_time = datetime.utcnow()
         
@@ -30,20 +32,18 @@ class EnhancedAnalytics:
         self.mysterious_achievements = set()
     
     def analyze_sentiment(self, text):
-        """Simple sentiment analysis without external dependencies"""
-        positive_words = ['love', 'happy', 'good', 'great', 'awesome', 'amazing', 'like', 'nice', 'wonderful', 'excellent']
-        negative_words = ['hate', 'sad', 'bad', 'terrible', 'awful', 'dislike', 'angry', 'mad', 'horrible', 'boring']
+        """Simple sentiment analysis (replace with TextBlob later)"""
+        positive_words = ['love', 'happy', 'good', 'great', 'awesome', 'amazing', 'like']
+        negative_words = ['hate', 'sad', 'bad', 'terrible', 'awful', 'dislike']
         
         text_lower = text.lower()
         positive_count = sum(1 for word in positive_words if word in text_lower)
         negative_count = sum(1 for word in negative_words if word in text_lower)
         
-        total_words = max(1, positive_count + negative_count)
-        
         if positive_count > negative_count:
-            return min(0.8, positive_count / total_words)
+            return min(0.8, positive_count * 0.2)
         elif negative_count > positive_count:
-            return max(-0.8, -negative_count / total_words)
+            return max(-0.8, -negative_count * 0.2)
         else:
             return 0.0
     
@@ -76,14 +76,14 @@ class EnhancedAnalytics:
             'message': message[:100]
         })
         
-        # Keep only last 20 emotional data points
-        if len(self.user_stats[user]['emotional_trend']) > 20:
-            self.user_stats[user]['emotional_trend'] = self.user_stats[user]['emotional_trend'][-20:]
+        # Keep only last 50 emotional data points
+        if len(self.user_stats[user]['emotional_trend']) > 50:
+            self.user_stats[user]['emotional_trend'] = self.user_stats[user]['emotional_trend'][-50:]
         
         # Update relationship score
         self._update_relationship_score(user, message)
         
-        # Track cloud memories (10% chance for emotional messages)
+        # Track cloud memories
         if self._is_memory_worthy(message):
             self.cloud_memories.append({
                 'user': user,
@@ -99,25 +99,22 @@ class EnhancedAnalytics:
         
         # Positive interactions increase score
         if sentiment > 0.1:
-            increase = min(5, sentiment * 15)
+            increase = min(3, sentiment * 8)
             self.user_stats[user]['relationship_score'] = min(100, base_score + increase)
         # Very negative interactions decrease score
         elif sentiment < -0.1:
-            decrease = min(5, abs(sentiment) * 12)
+            decrease = min(3, abs(sentiment) * 6)
             self.user_stats[user]['relationship_score'] = max(0, base_score - decrease)
-        # Small random fluctuation for neutral messages
-        else:
-            self.user_stats[user]['relationship_score'] = max(0, min(100, base_score + random.uniform(-1, 1)))
     
     def _is_memory_worthy(self, message):
         """Determine if a message should be stored as a cloud memory"""
-        emotional_words = ['love', 'hate', 'remember', 'forever', 'special', 'miss', 'happy', 'sad', 'angry', 'excited', 'scared']
-        return any(word in message.lower() for word in emotional_words) and random.random() > 0.9
+        keywords = ['love', 'hate', 'remember', 'forever', 'special', 'miss', 'happy', 'sad']
+        return any(keyword in message.lower() for keyword in keywords) and random.random() > 0.7
     
     def get_relationship_tier(self, score):
         """Convert score to mysterious relationship tier"""
         if score >= 90: return "🌌 Celestial Bond"
-        if score >= 75: return "⚡ Eternal Resonance" 
+        if score >= 75: return "⚡ Eternal Resonance"
         if score >= 60: return "🌀 Quantum Connection"
         if score >= 45: return "🌊 Flowing Harmony"
         if score >= 30: return "💫 Sparking Link"
@@ -133,7 +130,7 @@ class EnhancedAnalytics:
         active_users = {user: stats for user, stats in self.user_stats.items() 
                        if stats['message_count'] > 0}
         
-        # Top users by message count
+        # Top users
         top_users = sorted(
             [(user, stats['message_count']) for user, stats in active_users.items()],
             key=lambda x: x[1],
@@ -142,25 +139,19 @@ class EnhancedAnalytics:
         
         # Relationship analytics
         relationship_tiers = {}
-        top_relationships = []
-        
         for user, stats in active_users.items():
             tier = self.get_relationship_tier(stats['relationship_score'])
             relationship_tiers[user] = {
                 'tier': tier,
-                'score': round(stats['relationship_score'], 1),
+                'score': stats['relationship_score'],
                 'message_count': stats['message_count']
             }
-            top_relationships.append((user, stats['relationship_score']))
-        
-        # Sort by relationship score
-        top_relationships.sort(key=lambda x: x[1], reverse=True)
         
         # Emotional analytics
         recent_sentiments = []
         for user_stats in active_users.values():
             if user_stats['emotional_trend']:
-                recent = user_stats['emotional_trend'][-1]['sentiment'] if user_stats['emotional_trend'] else 0
+                recent = user_stats['emotional_trend'][-1]['sentiment']
                 recent_sentiments.append(recent)
         
         avg_sentiment = sum(recent_sentiments) / len(recent_sentiments) if recent_sentiments else 0
@@ -170,17 +161,19 @@ class EnhancedAnalytics:
                 'total_messages': total_messages,
                 'unique_users': len(active_users),
                 'uptime': str(timedelta(seconds=int((datetime.utcnow() - self.start_time).total_seconds()))),
-                'avg_sentiment': round(avg_sentiment, 3),
-                'start_time': self.start_time.isoformat()
+                'avg_sentiment': round(avg_sentiment, 3)
             },
             'message_stats': {
                 'web_messages': web_messages,
-                'discord_messages': discord_messages,
-                'messages_per_hour': total_messages / max(1, (datetime.utcnow() - self.start_time).total_seconds() / 3600)
+                'discord_messages': discord_messages
             },
             'relationship_analytics': {
                 'tiers_distribution': relationship_tiers,
-                'top_relationships': top_relationships[:5]
+                'top_relationships': sorted(
+                    [(user, data['score']) for user, data in relationship_tiers.items()],
+                    key=lambda x: x[1],
+                    reverse=True
+                )[:5]
             },
             'user_analytics': {
                 'top_users': top_users
@@ -188,14 +181,9 @@ class EnhancedAnalytics:
             'cloud_features': {
                 'memories_count': len(self.cloud_memories),
                 'recent_memories': self.cloud_memories[-3:] if self.cloud_memories else [],
-                'achievements_unlocked': list(self.mysterious_achievements)[:5]
+                'achievements_unlocked': list(self.mysterious_achievements)
             }
         }
-
-    # BACKWARD COMPATIBILITY - Keep the old method name
-    def get_analytics(self):
-        """Backward compatibility - uses enhanced analytics"""
-        return self.get_advanced_analytics()
     
     def generate_void_whisper(self):
         """Generate a mysterious whisper from the cloud"""
@@ -206,10 +194,6 @@ class EnhancedAnalytics:
     def unlock_achievement(self, user, achievement):
         """Unlock mysterious achievements"""
         self.mysterious_achievements.add(f"{user}: {achievement}")
-    
-    def get_recent_messages(self, count=10):
-        """Get recent messages for display"""
-        return self.message_history[-count:] if self.message_history else []
 
 # Global analytics instance
 analytics = EnhancedAnalytics()

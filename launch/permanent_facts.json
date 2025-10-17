@@ -1,42 +1,13 @@
 {
   "users": {
     "273365578020814848": {
-      "facts": [
+      "facts": [],
+      "health_status": [
         {
-          "key": "name",
-          "value": "Hatsona",
-          "category": "personal",
-          "confidence": 3,
-          "first_mentioned": "2025-10-16T17:43:57.654309",
-          "last_mentioned": "2025-10-16T17:43:57.654309",
-          "mention_count": 1
-        },
-        {
-          "key": "location",
-          "value": "Tokyo",
-          "category": "location",
-          "confidence": 2,
-          "first_mentioned": "2025-10-16T17:43:57.654309",
-          "last_mentioned": "2025-10-16T17:43:57.654309",
-          "mention_count": 1
-        },
-        {
-          "key": "age",
-          "value": "25 years old",
-          "category": "personal",
-          "confidence": 2,
-          "first_mentioned": "2025-10-16T17:43:57.654309",
-          "last_mentioned": "2025-10-16T17:43:57.654309",
-          "mention_count": 1
-        },
-        {
-          "key": "favorite_anime",
-          "value": "",
-          "category": "preferences",
-          "confidence": 2,
-          "first_mentioned": "2025-10-16T17:43:57.654309",
-          "last_mentioned": "2025-10-16T17:43:57.654309",
-          "mention_count": 1
+          "status": "sick",
+          "severity": 2,
+          "reported_at": "2025-10-17T07:15:48.413873",
+          "is_resolved": false
         }
       ]
     },
@@ -44,7 +15,15 @@
       "facts": []
     },
     "419918999292346368": {
-      "facts": []
+      "facts": [],
+      "health_status": [
+        {
+          "status": "recovered",
+          "severity": 1,
+          "reported_at": "2025-10-17T02:20:32.506804",
+          "is_resolved": false
+        }
+      ]
     }
   }
 }

@@ -1,10 +1,11 @@
-# app.py - FIXED CHANNEL LIST VERSION
+# app.py - COMPLETE FIXED VERSION
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO
 import json
 from datetime import datetime
 import asyncio
 import threading
+import random
 from discord_bridge import setup_discord_bridge
 from analytics import analytics
 
@@ -19,6 +20,11 @@ class WebPortal:
     
     def broadcast_message(self, data):
         socketio.emit("new_message", data)
+    
+    def broadcast_analytics(self):
+        """Broadcast updated analytics to all clients"""
+        analytics_data = analytics.get_analytics()  # Uses backward compatible method
+        socketio.emit("analytics_update", analytics_data)
 
 web_portal = WebPortal()
 
@@ -58,7 +64,7 @@ def api_servers():
         servers = []
         for guild in discord_bridge.bot.guilds:
             servers.append({
-                'id': str(guild.id),  # Ensure ID is string for JSON
+                'id': str(guild.id),
                 'name': guild.name,
                 'icon': str(guild.icon.url) if guild.icon else None,
                 'member_count': guild.member_count
@@ -74,16 +80,14 @@ def api_server_channels(server_id):
         if guild:
             channels = []
             for channel in guild.text_channels:
-                # Check if bot has permission to send messages
                 permissions = channel.permissions_for(guild.me)
                 if permissions.send_messages:
                     channels.append({
-                        'id': str(channel.id),  # Ensure ID is string for JSON
+                        'id': str(channel.id),
                         'name': channel.name,
                         'topic': channel.topic or "",
                         'position': channel.position
                     })
-            # Sort by position
             channels.sort(key=lambda x: x['position'])
             return jsonify(channels)
     return jsonify([])
@@ -99,11 +103,9 @@ def api_set_target_channel():
             discord_bridge.target_channel_id = int(channel_id)
             print(f"🎯 TARGET CHANNEL CHANGED: {channel_id}")
             
-            # Get channel info for display
             channel = discord_bridge.bot.get_channel(int(channel_id))
             channel_info = f"#{channel.name}" if channel else "Unknown Channel"
             
-            # Broadcast to all web clients
             socketio.emit("target_channel_changed", {
                 "channel_id": channel_id,
                 "channel_name": channel_info,
@@ -159,7 +161,6 @@ def api_toggle_auto_yap():
     
     if discord_bridge and hasattr(discord_bridge.bot, 'is_ready') and discord_bridge.bot.is_ready():
         try:
-            # Get the enhanced bot core instance
             enhanced_core = discord_bridge.bot.get_cog('EnhancedMelodyBotCore')
             if enhanced_core:
                 channel_id = discord_bridge.target_channel_id
@@ -172,7 +173,6 @@ def api_toggle_auto_yap():
                 
                 print(f"🔄 Auto-Yap {status} via web portal")
                 
-                # Broadcast status to all web clients
                 socketio.emit("auto_yap_status", {"enabled": enable, "status": status})
                 
                 return jsonify({"status": "success", "auto_yap": enable})
@@ -185,7 +185,55 @@ def api_toggle_auto_yap():
 @app.route("/api/analytics")
 def api_analytics():
     """Get analytics data"""
-    return jsonify(analytics.get_analytics())
+    return jsonify(analytics.get_analytics())  # Uses backward compatible method
+
+# ENHANCED API ROUTES
+@app.route("/api/enhanced_analytics")
+def api_enhanced_analytics():
+    """Get enhanced analytics with relationship data"""
+    return jsonify(analytics.get_advanced_analytics())
+
+@app.route("/api/void_whisper")
+def api_void_whisper():
+    """Get a random void whisper"""
+    whisper = analytics.generate_void_whisper()
+    return jsonify({"whisper": whisper})
+
+@app.route("/api/cloud_response", methods=["POST"])
+def api_cloud_response():
+    """Get mysterious cloud response"""
+    data = request.json
+    message = data.get("message", "")
+    user = data.get("user", "Anonymous")
+    
+    # Simple cloud response logic
+    mysterious_responses = [
+        "🌩️ The cloud stirs with your words...",
+        "💫 A ripple in the digital ether...",
+        "🌀 Patterns emerge from the chaos...",
+        "🌌 The void whispers back...",
+        "⚡ Energy flows between our connection...",
+        "🌊 Currents of emotion detected...",
+        "🔮 The future shimmers with possibilities...",
+        "🌫️ Memories float to the surface..."
+    ]
+    
+    response = random.choice(mysterious_responses)
+    
+    # Create cloud message
+    cloud_msg = {
+        "id": f"cloud_{datetime.utcnow().timestamp()}",
+        "user": "🌩️ Hatsona Milku",
+        "message": response,
+        "timestamp": datetime.utcnow().isoformat(),
+        "source": "cloud",
+        "mysterious": True
+    }
+    
+    analytics.track_message(cloud_msg)
+    web_portal.broadcast_message(cloud_msg)
+    
+    return jsonify({"response": response})
 
 @socketio.on("connect")
 def handle_connect():
@@ -193,7 +241,7 @@ def handle_connect():
     print(f"🌐 CLIENT CONNECTED. Total: {web_portal.connected_clients}")
     socketio.emit("message_history", web_portal.message_history[-50:])
     
-    # Send initial analytics
+    # Send initial analytics - uses backward compatible method
     socketio.emit("analytics_update", analytics.get_analytics())
 
 @socketio.on("disconnect")
@@ -206,8 +254,28 @@ def handle_web_command(data):
     command = data.get("command")
     print(f"🎮 WEB COMMAND: {command}")
 
+@socketio.on("request_cloud_insight")
+def handle_cloud_insight(data):
+    """Handle requests for cloud insights"""
+    user = data.get("user", "Anonymous")
+    
+    mysterious_responses = [
+        f"🔮 Analyzing connection with {user}... the bond grows stronger!",
+        f"💞 The cloud senses deep resonance with {user}",
+        f"🌐 Network analysis: Multiple connection points with {user} detected",
+        f"⚡ Energy flows harmoniously between the cloud and {user}"
+    ]
+    
+    response = random.choice(mysterious_responses)
+    
+    socketio.emit("cloud_insight", {
+        "user": user,
+        "insight": response,
+        "timestamp": datetime.utcnow().isoformat()
+    })
+
 if __name__ == "__main__":
-    print("🚀 STARTING MELODY AI WEB PORTAL WITH FIXED CHANNEL LIST...")
+    print("🚀 STARTING MELODY AI WEB PORTAL - ENHANCED VERSION...")
     
     # Start Discord bridge in background thread
     discord_thread = threading.Thread(target=start_discord_bridge, daemon=True)
